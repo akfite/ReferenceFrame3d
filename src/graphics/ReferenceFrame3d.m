@@ -1,7 +1,14 @@
 classdef ReferenceFrame3d < handle
     
     properties (SetAccess = private)
-        dcm(3,3) double % orientation 
+        R(4,4) double = eye(4) % homogeneous transform (rotation & translation)
+    end
+
+    properties (Dependent)
+        x(1,3) double
+        y(1,3) double
+        z(1,3) double
+        
         origin(1,3) double
     end
 
@@ -10,17 +17,89 @@ classdef ReferenceFrame3d < handle
         h_transform
         h_frame
     end
+
+    %% Dependent
+    methods
+        function v = get.x(this)
+            v = this.R(1:3,1).';
+        end
+        function v = get.y(this)
+            v = this.R(1:3,2).';
+        end
+        function v = get.z(this)
+            v = this.R(1:3,3).';
+        end
+        function v = get.origin(this)
+            v = this.R(1:3,4).';
+        end
+    end
+
+    methods
+        function [p, dist] = intersect_plane(this, observer, ray, opts)
+            arguments
+                this(1,1) ReferenceFrame3d
+                observer(1,3) double
+                ray(1,3) double
+                opts.Slice(1,1) string = "xy"
+                opts.Offset(1,1) double = 0
+                opts.Debug(1,1) logical = true
+            end
+
+            % select the 2 basis vectors that define the plane
+            switch opts.Slice
+                case "xy"
+                    a = this.x; b = this.y;
+                case "xz"
+                    a = this.x; b = this.z;
+                case "yz"
+                    a = this.y; b = this.z;
+                case "yx"
+                    a = this.y; b = this.x;
+                case "zx"
+                    a = this.z; b = this.x;
+                case "zy"
+                    a = this.z; b = this.y;
+                otherwise
+                    % validatestring
+            end
+
+            normal = cross(a, b);
+            normal = normal ./ norm(normal);
+            point = this.origin + (opts.Offset * normal);
+
+            denominator = dot(normal, ray);
+
+            if abs(denominator) < 1e-6
+                p = [nan nan nan];
+                return
+            end
+
+            numerator = dot(normal, point - observer);
+            dist = numerator / denominator;
+            p = observer + (dist * ray);
+
+            if opts.Debug
+                % TODO
+            end
+        end
+    end
     
     %% Constructors
     methods
-        function this = ReferenceFrame3d(dcm, origin)
-            arguments
-                dcm(3,3) double {mustBeReal} = eye(3)
-                origin(1,3) double {mustBeReal} = [0 0 0]
+        function this = ReferenceFrame3d(R, origin)
+            if nargin == 0
+                return
+            end
+            if nargin < 2
+                origin = [0 0 0];
             end
 
-            this.dcm = dcm;
-            this.origin = origin;
+            if isequal(size(R,[1 2]), [4 4])
+                this.R = R;
+            else
+                R(4,4) = 1;
+                this.R = R * makehgtform("translate", origin);
+            end
         end
 
         function set(this, dcm, origin)
@@ -59,7 +138,7 @@ classdef ReferenceFrame3d < handle
                 elseif size(B,1) == 4 && size(B,2) == 4
                     B_matrix = B;
                 else
-                    error('Expected B to be 3x3 or 4x4 when numeric.');
+                    error('Expected B to be 3xN or 4xN when numeric.');
                 end
             end
 
@@ -68,16 +147,32 @@ classdef ReferenceFrame3d < handle
         end
 
         function new = ctranspose(this)
-            new = ReferenceFrame3d(this.dcm.', this.origin);
+            R_new = this.R;
+            R_new(1:3,1:3) = R_new(1:3,1:3)';
+            new = ReferenceFrame3d(R_new);
         end
 
         function new = transpose(this)
-            new = ReferenceFrame3d(this.dcm', this.origin);
+            R_new = this.R;
+            R_new(1:3,1:3) = R_new(1:3,1:3).';
+            new = ReferenceFrame3d(R_new);
         end
     end
 
     %% Plotting
     methods
+        function tform = hgtransform(this, parent)
+            if nargin < 2
+                parent = gca;
+            end
+
+            if isempty(this.h_transform) || ~isvalid(this.h_transform)
+                this.h_transform = hgtransform('Parent', parent);
+            end
+
+            tform = this.h_transform;
+        end
+
         function plot(this)
             %PLOT Plot as a 3-d object.
 
@@ -89,11 +184,7 @@ classdef ReferenceFrame3d < handle
             zlim([-1 1]);
             grid on; box on;
 
-            if isempty(this.h_transform) || ~isvalid(this.h_transform)
-                % draw from scratch
-                this.h_transform = hgtransform('Parent', ax);
-            end
-
+            this.hgtransform(); % TODO: configurable parent
             this.update_transform();
 
             scale = 0.1 * max(diff(xlim(ax)), diff(ylim(ax)));

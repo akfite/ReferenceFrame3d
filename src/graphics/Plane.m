@@ -10,7 +10,7 @@ classdef Plane < ReferenceFrame3d
         h_plane
     end
 
-    %% Plotting
+    %% Overloads
     methods
         function plot(this)
             plot@ReferenceFrame3d(this)
@@ -23,11 +23,8 @@ classdef Plane < ReferenceFrame3d
             grid = linspace(0, 1, N);
             [xdata, ydata] = meshgrid(grid * xlen, grid * ylen);
 
-            % always create the plane at the origin at +Z, then use
-            % the plane's parameters to construct a rotation to apply
-            % to the hggtransform
-            this.h_plane = hggroup(this.h_transform);
-            surface(...
+            % always create the plane at the origin at +Z
+            this.h_plane = surface(...
                 'XData', xdata, ...
                 'YData', ydata, ...
                 'ZData', zeros(size(xdata)), ...
@@ -39,7 +36,21 @@ classdef Plane < ReferenceFrame3d
                 'Clipping', 'off', ...
                 'HitTest','off',...
                 'PickableParts','none',...
-                'Parent', this.h_plane);
+                'Parent', this.h_frame);
+        end
+
+        function [p, dist] = intersect_plane(this, observer, ray, opts)
+            arguments
+                this(1,1) Plane
+                observer(1,3) double
+                ray(1,3) double
+                opts.Debug(1,1) logical = true
+            end
+
+            [p, dist] = intersect_plane@ReferenceFrame3d(this, observer, ray, ...
+                'Slice', "xy", ...
+                'Offset', 0, ...
+                'Debug', opts.Debug);
         end
     end
 
