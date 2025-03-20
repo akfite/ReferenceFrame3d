@@ -1,15 +1,15 @@
 classdef ReferenceFrame3d < handle
     
     properties (SetAccess = private)
-        R(4,4) double = eye(4) % homogeneous transform (rotation & translation)
+        T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
     end
 
     properties (Dependent)
-        x(1,3) double
-        y(1,3) double
-        z(1,3) double
-        
-        origin(1,3) double
+        R(3,3) double % rotation submatrix
+        x(3,1) double
+        y(3,1) double
+        z(3,1) double
+        t(3,1) double % translation
     end
 
     % graphics
@@ -20,17 +20,20 @@ classdef ReferenceFrame3d < handle
 
     %% Dependent
     methods
+        function v = get.R(this)
+            v = this.T(1:3,1:3);
+        end
         function v = get.x(this)
-            v = this.R(1:3,1).';
+            v = this.T(1:3,1);
         end
         function v = get.y(this)
-            v = this.R(1:3,2).';
+            v = this.T(1:3,2);
         end
         function v = get.z(this)
-            v = this.R(1:3,3).';
+            v = this.T(1:3,3);
         end
-        function v = get.origin(this)
-            v = this.R(1:3,4).';
+        function v = get.t(this)
+            v = this.T(1:3,4);
         end
     end
 
@@ -65,7 +68,7 @@ classdef ReferenceFrame3d < handle
 
             normal = cross(a, b);
             normal = normal ./ norm(normal);
-            point = this.origin + (opts.Offset * normal);
+            point = this.t + (opts.Offset * normal);
 
             denominator = dot(normal, ray);
 
@@ -84,9 +87,69 @@ classdef ReferenceFrame3d < handle
         end
     end
     
+    %% TODO
+    methods
+        function validate()
+        end
+
+        function translate()
+        end
+        
+        function rotate()
+        end
+
+        function transform(this, R)
+        end
+
+        function new = compose(this)
+            arguments (Repeating)
+                this(1,:) ReferenceFrame3d
+            end
+            this = [this{:}];
+            T_new = this(end).T;
+            for i = numel(this)-1:-1:1
+                T_new = this(i).T * T_new;
+            end
+            new = ReferenceFrame3d(T_new);
+        end
+
+        function inverse = invert(this)
+            R_inv = this.R'; % transpose is inverse for rotation matrices
+            t_inv = -R_inv * this.t;
+            inverse = ReferenceFrame3d([R_inv, t_inv; 0 0 0 1]);
+        end
+
+        % overloads
+        function new = mtimes(this, other)
+            %MTIMES Matrix multiplication.
+            new = ReferenceFrame3d(this.T * other.T);
+        end
+
+        function new = ctranspose(this)
+            new = transpose(this); % complex types are not supported (' == .')
+        end
+        function new = transpose(this)
+            T_new = this.T;
+            T_new(1:3,1:3) = T_new(1:3,1:3).';
+            new = ReferenceFrame3d(T_new);
+        end
+
+        % numeric representations
+        function T = as_matrix(this)
+            T = this.T;
+        end
+        function as_quaternion()
+        end
+        function as_euler()
+        end
+
+        function points_out = project_to_plane(this, points_in, slice)
+        end
+    end
+    
     %% Constructors
     methods
-        function this = ReferenceFrame3d(R, origin)
+        function this = ReferenceFrame3d(matrix, origin)
             if nargin == 0
                 return
             end
@@ -94,11 +157,11 @@ classdef ReferenceFrame3d < handle
                 origin = [0 0 0];
             end
 
-            if isequal(size(R,[1 2]), [4 4])
-                this.R = R;
+            if isequal(size(matrix,[1 2]), [4 4])
+                this.T = matrix;
             else
-                R(4,4) = 1;
-                this.R = R * makehgtform("translate", origin);
+                matrix(4,4) = 1;
+                this.T = matrix * makehgtform("translate", origin);
             end
         end
 
@@ -109,53 +172,15 @@ classdef ReferenceFrame3d < handle
                 case 'ReferenceFrame3d'
                     frame = dcm;
                     this.dcm = frame.dcm;
-                    this.origin = frame.origin;
+                    this.t = frame.t;
                 case {'double','single'}
                     this.dcm = dcm;
-                    this.origin = origin;
+                    this.t = origin;
                 otherwise
                     validateattributes(dcm,{'single','double','ReferenceFrame3d'},{});
             end
 
             this.update_transform();
-        end
-
-        function tform_4x4 = homogeneous_transform(this)
-            %HOMOGENEOUS_TRANSFORM Convert to 4x4 form (rotation & translation)
-            tform_4x4 = this.dcm; % 3x3
-            tform_4x4(4,4) = 1; % grow to 4x4
-            tform_4x4 = tform_4x4 * makehgtform('translate', this.origin);
-        end
-
-        function C = mtimes(A, B)
-            %MTIMES Overload for matrix multiplication.
-            if isa(B,'ReferenceFrame3d')
-                B_matrix = B.homogeneous_transform();
-            elseif isnumeric(B)
-                % convert numeric to 4x4 (assume no translation when 3x3)
-                if size(B,1) == 3 && size(B,2) == 3
-                    B_matrix(1:3,1:3) = B;
-                elseif size(B,1) == 4 && size(B,2) == 4
-                    B_matrix = B;
-                else
-                    error('Expected B to be 3xN or 4xN when numeric.');
-                end
-            end
-
-            C_matrix = A.homogeneous_transform() * B_matrix;
-            C = ReferenceFrame3d(C_matrix(1:3,1:3), C_matrix(1:3,4));
-        end
-
-        function new = ctranspose(this)
-            R_new = this.R;
-            R_new(1:3,1:3) = R_new(1:3,1:3)';
-            new = ReferenceFrame3d(R_new);
-        end
-
-        function new = transpose(this)
-            R_new = this.R;
-            R_new(1:3,1:3) = R_new(1:3,1:3).';
-            new = ReferenceFrame3d(R_new);
         end
     end
 
