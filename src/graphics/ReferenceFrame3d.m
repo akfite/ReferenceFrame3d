@@ -6,7 +6,7 @@ classdef ReferenceFrame3d < handle
     end
 
     % graphics
-    properties (Access = private)
+    properties (Access = protected)
         h_transform
         h_frame
     end
