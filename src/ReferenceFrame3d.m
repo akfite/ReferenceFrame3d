@@ -1,4 +1,4 @@
-classdef ReferenceFrame3d < handle
+classdef ReferenceFrame3d < matlab.mixin.Copyable
     
     properties (SetAccess = private)
         T(4,4) double {mustBeReal} = eye(4) % homogeneous transform (rotation & translation)
@@ -16,6 +16,21 @@ classdef ReferenceFrame3d < handle
     properties (Access = protected)
         h_transform
         h_frame
+    end
+
+    %% matlab.mixin.Copyable
+    methods
+        function new = copyElement(this)
+            new = copyElement@matlab.mixin.Copyable(this);
+
+            % only copy graphics objects if something has been plotted
+            if isempty(this.h_transform) || ~isvalid(this.h_transform)
+                return
+            end
+            parent = this.h_transform.Parent;
+            new.h_transform = copyobj(this.h_transform, parent);
+            new.h_frame = copyobj(this.h_frame, parent);
+        end
     end
 
     %% Dependent
