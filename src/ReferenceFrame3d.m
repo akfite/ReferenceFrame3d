@@ -1,15 +1,15 @@
 classdef ReferenceFrame3d < handle
     
     properties (SetAccess = private)
-        T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
+        T(4,4) double {mustBeReal} = eye(4) % homogeneous transform (rotation & translation)
     end
 
     properties (Dependent)
         R(3,3) double % rotation submatrix
-        x(3,1) double
-        y(3,1) double
-        z(3,1) double
-        t(3,1) double % translation
+        x(3,1) double % x basis (1st col)
+        y(3,1) double % y basis (2nd col)
+        z(3,1) double % z basis (3rd col)
+        t(3,1) double % translation (origin of reference frame)
     end
 
     % graphics
@@ -89,16 +89,38 @@ classdef ReferenceFrame3d < handle
     
     %% TODO
     methods
-        function validate()
+        function validate(this)
+            assert(det(this.R) == 1, ...
+                'Expected determinant of R to be 1; instead got %f', det(this.R));
         end
 
-        function translate()
+        function new = translate(this, dx)
+            arguments
+                this(1,1) ReferenceFrame3d
+                dx(3,1) double
+            end
+            new = ReferenceFrame3d(this.T * makehgtform('translate', dx));
+        end
+
+        function new = reposition(this, new_pos)
+            arguments
+                this(1,1) ReferenceFrame3d
+                new_pos(3,1) double
+            end
+            T_new = this.T;
+            T_new(1:3,4) = new_pos;
+            new = ReferenceFrame3d(T_new);
+            if nargout == 0, this.T = T_new; end
         end
         
-        function rotate()
-        end
-
-        function transform(this, R)
+        function new = rotate(this, dcm)
+            arguments
+                this(1,1) ReferenceFrame3d
+                dcm(3,3) double
+            end
+            T = dcm; %#ok<*PROPLC>
+            T(4,4) = 1; % 3x3 -> 4x4 with no translation
+            new = ReferenceFrame3d(this.T * T);
         end
 
         function new = compose(this)
@@ -114,7 +136,7 @@ classdef ReferenceFrame3d < handle
         end
 
         function inverse = invert(this)
-            R_inv = this.R'; % transpose is inverse for rotation matrices
+            R_inv = this.R'; % transpose = inverse for a DCM by definition
             t_inv = -R_inv * this.t;
             inverse = ReferenceFrame3d([R_inv, t_inv; 0 0 0 1]);
         end
@@ -136,14 +158,14 @@ classdef ReferenceFrame3d < handle
 
         % numeric representations
         function T = as_matrix(this)
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             T = this.T;
         end
         function as_quaternion()
         end
-        function as_euler()
-        end
-
-        function points_out = project_to_plane(this, points_in, slice)
+        function [roll, pitch, yaw] = as_euler()
         end
     end
     
@@ -161,7 +183,7 @@ classdef ReferenceFrame3d < handle
                 this.T = matrix;
             else
                 matrix(4,4) = 1;
-                this.T = matrix * makehgtform("translate", origin);
+                this.T = matrix * makehgtform('translate', origin);
             end
         end
 
@@ -247,7 +269,7 @@ classdef ReferenceFrame3d < handle
                 return
             end
 
-            this.h_transform.Matrix = homogeneous_transform(this);
+            this.h_transform.Matrix = this.T;
         end
     end
 
