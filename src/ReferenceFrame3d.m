@@ -344,7 +344,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
             % create new axes only if we don't have a parent to target
             % AND there's no valid transform already
-            if isempty(parent) && (isempty(this.h_transform) || ~isvalid(this.h_transform))
+            if (isempty(parent) || ~isvalid(parent)) ...
+                    && (isempty(this.h_transform) || ~isvalid(this.h_transform))
                 parent = gca();
             end
 
