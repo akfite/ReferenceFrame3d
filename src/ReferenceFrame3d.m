@@ -57,12 +57,47 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
     %% Math & Utility
     methods
+        function base_vec = local2base(this, local_vec)
+            arguments
+                this(1,:) ReferenceFrame3d
+                local_vec(:,3)
+            end
+
+            if isscalar(this)
+                T = this.T;
+            else
+                T = as_matrix(compose(this)); % combine rotations
+            end
+
+            local_vec(:,4) = 1; % to homogeneous coordinates
+            base_vec = (T * local_vec')'; % transform
+            base_vec = base_vec(:,1:3); % extract first 3 dims
+        end
+
+        function local_vec = base2local(this, base_vec)
+            arguments
+                this(1,:) ReferenceFrame3d
+                base_vec(:,3)
+            end
+
+            if isscalar(this)
+                T = as_matrix(inv(this));
+            else
+                T = as_matrix(inv(compose(this))); % combine rotations
+            end
+
+            base_vec(:,4) = 1; % to homogeneous coordinates
+            local_vec = (T * base_vec')'; % transform
+            local_vec = local_vec(:,1:3); % extract first 3 dims
+        end
+
         function new = translate(this, dx)
             arguments
                 this(1,1) ReferenceFrame3d
                 dx(3,1) double
             end
             new = ReferenceFrame3d(this.T * makehgtform('translate', dx));
+            if nargout == 0, this.T = T_new; end
         end
 
         function new = reposition(this, new_pos)
@@ -84,6 +119,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             T = dcm; %#ok<*PROPLC>
             T(4,4) = 1; % 3x3 -> 4x4 with no translation
             new = ReferenceFrame3d(this.T * T);
+            if nargout == 0, this.T = T_new; end
         end
 
         function new = compose(this)
@@ -98,10 +134,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             new = ReferenceFrame3d(T_new);
         end
 
-        function inverse = invert(this)
+        function inverse = inv(this)
             R_inv = this.R'; % transpose = inverse for a DCM by definition
             t_inv = -R_inv * this.t;
-            inverse = ReferenceFrame3d([R_inv, t_inv; 0 0 0 1]);
+            T_new = [R_inv, t_inv; 0 0 0 1];
+            inverse = ReferenceFrame3d(T_new);
+            if nargout == 0, this.T = T_new; end
         end
 
         function T = as_matrix(this)
