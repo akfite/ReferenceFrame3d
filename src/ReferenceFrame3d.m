@@ -236,26 +236,71 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
     methods
         function show(this)
             % draw everything in a dedicated figure
+
+            % DEBUG/TODO: remove
+            hfig = figure;
+            ax = axes('parent', hfig);
+            xlim(ax, [-1 1]); % TODO: consider frame origin
+            ylim(ax, [-1 1]);
+            zlim(ax, [-1 1]);
+            grid on; box on;
+            this.plot('Colors','c');
         end
 
         function plot(this, opts)
             %PLOT Plot as a 3-d object.
+            arguments
+                this(1,1) ReferenceFrame3d
+                opts.Parent = gca()
+                opts.Colors(1,3) char = 'rgb' % for basis xyz
+                opts.LineWidth(1,3) double = 2
+                opts.LineStyle(1,:) char = '-'
+            end
 
-            % DEBUG/TODO: remove
-            figure
-            ax = gca;
-            xlim([-1 1]);
-            ylim([-1 1]);
-            zlim([-1 1]);
-            grid on; box on;
+            tform = this.get_hgtransform(opts.Parent);
 
-            this.get_hgtransform(); % TODO: configurable parent
-
+            if ~isempty(tform.Children)
+                return % data is already plotted; the transform update above is sufficient
+            end
+            
+            ax = ancestor(opts.Parent, 'axes');
             scale = 0.1 * max(diff(xlim(ax)), diff(ylim(ax)));
 
             % we may wish to plot other things to the reference frame transform,
             % so let's organize the basis vector data under its own group
-            this.h_frame = hggroup('parent', this.h_transform);
+            this.h_frame = hggroup('parent', tform);
+
+            if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
+                % interleave NaNs to plot all basis vectors as a single object
+                xdata = [0 scale NaN; 0 0 NaN; 0 0 NaN]';
+                ydata = [0 0 NaN; 0 scale NaN; 0 0 NaN]';
+                zdata = [0 0 NaN; 0 0 NaN; 0 scale NaN]';
+                line(this.h_frame, ...
+                    xdata(:), ydata(:), zdata(:), ...
+                    'Color', opts.Colors(1), ...
+                    'LineWidth', opts.LineWidth(1), ...
+                    'LineStyle', opts.LineStyle, ...
+                    'Clipping', 'off');
+            else
+                line(this.h_frame, ...
+                    [0 scale], [0 0], [0 0], ...
+                    'Color', opts.Colors(1), ...
+                    'LineWidth', opts.LineWidth(1), ...
+                    'LineStyle', opts.LineStyle, ...
+                    'Clipping', 'off');
+                line(this.h_frame, ....
+                    [0 0], [0 scale], [0 0], ...
+                    'Color', opts.Colors(2), ...
+                    'LineWidth', opts.LineWidth(2), ...
+                    'LineStyle', opts.LineStyle, ...
+                    'Clipping', 'off');
+                line(this.h_frame, ...
+                    [0 0], [0 0], [0 scale], ...
+                    'Color', opts.Colors(3), ...
+                    'LineWidth', opts.LineWidth(3), ...
+                    'LineStyle', opts.LineStyle, ...
+                    'Clipping', 'off');
+            end
             line(this.h_frame, ...
                 'XData', 0, 'YData', 0, 'ZData', 0, ...
                 'Color', 'k', ...
@@ -263,31 +308,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 'MarkerSize', 12, ...
                 'Hittest','off','PickableParts','none',...
                 'Clipping', 'off');
-            line(this.h_frame, ...
-                [0 scale], [0 0], [0 0], ...
-                'Color', 'r', ...
-                'LineWidth', 1, ...
-                'Clipping', 'off');
-            line(this.h_frame, ....
-                [0 0], [0 scale], [0 0], ...
-                'Color', 'g', ...
-                'LineWidth', 1, ...
-                'Clipping', 'off');
-            line(this.h_frame, ...
-                [0 0], [0 0], [0 scale], ...
-                'Color', 'b', ...
-                'LineWidth', 1, ...
-                'Clipping', 'off');
         end
 
         function tform = get_hgtransform(this, parent)
-            %GET_HGTRANSFORM Get (and create, if necessary) a graphics transform.
+            %GET_HGTRANSFORM Get the graphics transform paired to this object.
             if nargin < 2
                 parent = gca;
             end
 
-            % TODO: if parent doesn't match current, make a new transform
-            if isempty(this.h_transform) || ~isvalid(this.h_transform)
+            if isempty(this.h_transform) ...
+                    || ~isvalid(this.h_transform) ...
+                    || ~isequal(this.h_transform.Parent, parent)
+                delete(this.h_transform);
                 this.h_transform = hgtransform('Parent', parent);
             end
 
@@ -301,6 +333,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 return
             end
             this.h_transform.Matrix = this.T;
+        end
+
+        function clear(this)
+            for i = 1:numel(this)
+                delete(this(i).h_transform);
+            end
         end
     end
 
