@@ -22,7 +22,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         VALIDATION_TOLERANCE = 1e-10
     end
 
-    %% Constructors
+    %% Construction
     methods
         function this = ReferenceFrame3d(matrix, origin)
             if nargin == 0
@@ -41,10 +41,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
             validate(this);
         end
-    end
 
-    %% Math & Utility
-    methods        
         function validate(this)
             R = this.R; %#ok<*PROP>
             tol = this.VALIDATION_TOLERANCE;
@@ -56,7 +53,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 'Orthogonality is outside tolerance (R*R'' is not eye(3); %f > %f)', ...
                 orthogonality_error, tol)
         end
+    end
 
+    %% Math & Utility
+    methods
         function new = translate(this, dx)
             arguments
                 this(1,1) ReferenceFrame3d
@@ -110,9 +110,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             end
             T = this.T;
         end
+
         function as_quaternion()
         end
+
         function [roll, pitch, yaw] = as_euler()
+        end
+
+        function [roll, pitch, yaw] = angle_between(A, B)
         end
 
         function [p, dist] = intersect_plane(this, observer, ray, opts)
@@ -278,17 +283,21 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
     %% matlab.mixin.Copyable
     methods (Access = protected)
-        function new = copyElement(this)
-            new = copyElement@matlab.mixin.Copyable(this);
+        function copied = copyElement(this)
+            copied = copyElement@matlab.mixin.Copyable(this);
 
             % only copy graphics objects if something has been plotted
             if isempty(this.h_transform) || ~isvalid(this.h_transform)
                 return
             end
             parent = this.h_transform.Parent;
-            new.h_transform = copyobj(this.h_transform, parent);
-            new.h_frame = copyobj(this.h_frame, parent);
+            copied.h_transform = copyobj(this.h_transform, parent);
+            copied.h_frame = copyobj(this.h_frame, parent);
         end
+    end
+
+    %% matlab.mixin.CustomDisplay
+    methods (Access = protected)
     end
 
 end
