@@ -18,10 +18,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         h_frame
     end
 
-    properties (Constant, Hidden)
-        VALIDATION_TOLERANCE = 1e-10
-    end
-
     %% Construction
     methods
         function this = ReferenceFrame3d(matrix, origin)
@@ -33,20 +29,29 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             end
 
             if isequal(size(matrix,[1 2]), [4 4])
-                this.T = matrix;
+                T = matrix;
             else
                 matrix(4,4) = 1;
-                this.T = matrix * makehgtform('translate', origin);
+                T = matrix * makehgtform('translate', origin);
             end
 
-            validate(this);
+            ReferenceFrame3d.validate_transform(T);
+            this.T = T;
         end
+    end
 
-        function validate(this)
-            R = this.R; %#ok<*PROP>
-            tol = this.VALIDATION_TOLERANCE;
+    methods (Static)
+        function validate_transform(T)
+            %VALIDATE Check that the transform makes sense as configured.
+            validateattributes(T, ...
+                {'single','double'}, ...
+                {'real','finite','2d','ncols',4,'nrows',4});
+            tol = 1e-10;
+
+            R = T(1:3,1:3); %#ok<*PROP>
             assert(abs(det(R) - 1) < tol, ...
                 'Expected determinant of 3x3 submatrix R to be 1; instead got %f', det(R));
+
             RRt = R*R';
             orthogonality_error = norm(RRt - eye(3),'fro');
             assert(orthogonality_error < tol, ...
@@ -55,7 +60,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         end
     end
 
-    %% Math & Utility
+    %% Math & utility
     methods
         function base_vec = local2base(this, local_vec)
             arguments
@@ -126,7 +131,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             end
             T = dcm; %#ok<*PROPLC>
             T(4,4) = 1; % 3x3 -> 4x4 with no translation
-            new = ReferenceFrame3d(this.T * T);
+            T_new = this.T * T;
+            new = ReferenceFrame3d(T_new);
             if nargout == 0, this.T = T_new; end
         end
 
@@ -171,27 +177,27 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 this(1,1) ReferenceFrame3d
                 observer(1,3) double
                 ray(1,3) double
-                opts.Slice(1,1) string = "xy"
+                opts.Slice(1,2) char = 'xy'
                 opts.Offset(1,1) double = 0
                 opts.Debug(1,1) logical = true
             end
 
             % select the 2 basis vectors that define the plane
             switch opts.Slice
-                case "xy"
+                case 'xy'
                     a = this.x; b = this.y;
-                case "xz"
+                case 'xz'
                     a = this.x; b = this.z;
-                case "yz"
+                case 'yz'
                     a = this.y; b = this.z;
-                case "yx"
+                case 'yx'
                     a = this.y; b = this.x;
-                case "zx"
+                case 'zx'
                     a = this.z; b = this.x;
-                case "zy"
+                case 'zy'
                     a = this.z; b = this.y;
                 otherwise
-                    % validatestring
+                    validatestring(opts.Slice,{'xy','xz','yz','yx','zx','zy'});
             end
 
             normal = cross(a, b);
@@ -224,18 +230,21 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
         function new = ctranspose(this)
             new = transpose(this); % complex types are not supported (' == .')
+            if nargout == 0, this.T = T_new; end
         end
+
         function new = transpose(this)
             T_new = this.T;
             T_new(1:3,1:3) = T_new(1:3,1:3).';
             new = ReferenceFrame3d(T_new);
+            if nargout == 0, this.T = T_new; end
         end
     end
 
     %% Graphics
     methods
         function show(this)
-            % draw everything in a dedicated figure
+            % draw everything in a new, dedicated figure
 
             % DEBUG/TODO: remove
             hfig = figure;
@@ -244,31 +253,36 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             ylim(ax, [-1 1]);
             zlim(ax, [-1 1]);
             grid on; box on;
-            this.plot('Colors','c');
+            this.plot('Colors','k', LineStyle=':');
         end
 
         function plot(this, opts)
             %PLOT Plot as a 3-d object.
             arguments
                 this(1,1) ReferenceFrame3d
-                opts.Parent = gca()
+                opts.Parent = []
                 opts.Colors(1,3) char = 'rgb' % for basis xyz
                 opts.LineWidth(1,3) double = 2
                 opts.LineStyle(1,:) char = '-'
             end
 
-            tform = this.get_hgtransform(opts.Parent);
+            tform = this.get_or_create_hgtransform(opts.Parent);
+            this.update_hgtransform(); % TODO: this should happen via listeners
 
-            if ~isempty(tform.Children)
-                return % data is already plotted; the transform update above is sufficient
+            if ~isempty(this.h_frame) ...
+                    && isvalid(this.h_frame) ...
+                    && isequal(this.h_frame.Parent, tform)
+                return % data is already plotted
             end
             
-            ax = ancestor(opts.Parent, 'axes');
+            ax = ancestor(tform, 'axes');
+            assert(~isempty(ax), ...
+                'The ancestor axis to the hgtransform is empty.');
             scale = 0.1 * max(diff(xlim(ax)), diff(ylim(ax)));
 
             % we may wish to plot other things to the reference frame transform,
             % so let's organize the basis vector data under its own group
-            this.h_frame = hggroup('parent', tform);
+            this.h_frame = hggroup('parent', tform, 'tag', 'RF3D_BASIS_VECTORS');
 
             if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
                 % interleave NaNs to plot all basis vectors as a single object
@@ -310,25 +324,39 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 'Clipping', 'off');
         end
 
-        function tform = get_hgtransform(this, parent)
+        function tform = get_or_create_hgtransform(this, parent)
             %GET_HGTRANSFORM Get the graphics transform paired to this object.
-            if nargin < 2
-                parent = gca;
+
+            if isa(parent, 'ReferenceFrame3d')
+                assert(~isempty(parent.h_transform) && isvalid(parent.h_transform), ...
+                    'Invalid parent (no transform has been created)');
+                parent = parent.h_transform;
             end
 
-            if isempty(this.h_transform) ...
-                    || ~isvalid(this.h_transform) ...
-                    || ~isequal(this.h_transform.Parent, parent)
+            % consider the current transform invalid if the parent has changed
+            if ~isempty(parent) && isvalid(parent) ...
+                    && ~isempty(this.h_transform) ...
+                    && isvalid(this.h_transform) ...
+                    && ~isequal(this.h_transform.Parent, parent)
                 delete(this.h_transform);
+            end
+
+            % create new axes only if we don't have a parent to target
+            % AND there's no valid transform already
+            if isempty(parent) && (isempty(this.h_transform) || ~isvalid(this.h_transform))
+                parent = gca();
+            end
+
+            % create a new transform
+            if isempty(this.h_transform) || ~isvalid(this.h_transform)
                 this.h_transform = hgtransform('Parent', parent);
             end
 
-            this.update_hgtransform();
             tform = this.h_transform;
         end
 
         function update_hgtransform(this)
-            %UPDATE_TRANSFORM Re-orient based on the object state.
+            %UPDATE_TRANSFORM Update the graphics transform to match the object state.
             if isempty(this.h_transform) || ~isvalid(this.h_transform)
                 return
             end
@@ -336,13 +364,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         end
 
         function clear(this)
+            %CLEAR Delete all graphics objects.
             for i = 1:numel(this)
                 delete(this(i).h_transform);
             end
         end
     end
 
-    %% Dependent
+    %% Dependent property accessors
     methods
         function v = get.R(this)
             v = this.T(1:3,1:3);
