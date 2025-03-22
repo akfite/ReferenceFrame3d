@@ -179,6 +179,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 ray(1,3) double
                 opts.Slice(1,2) char = 'xy'
                 opts.Offset(1,1) double = 0
+                opts.CoplanarTolerance(1,1) double = 1e-6
                 opts.Debug(1,1) logical = true
             end
 
@@ -206,7 +207,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
             denominator = dot(normal, ray);
 
-            if abs(denominator) < 1e-6
+            if abs(denominator) < opts.CoplanarTolerance
                 p = [nan nan nan];
                 return
             end
