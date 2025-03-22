@@ -59,7 +59,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
     methods
         function base_vec = local2base(this, local_vec)
             arguments
-                this(1,:) ReferenceFrame3d
+                this(:,1) ReferenceFrame3d
                 local_vec(:,3)
             end
 
@@ -70,13 +70,17 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             end
 
             local_vec(:,4) = 1; % to homogeneous coordinates
-            base_vec = (T * local_vec')'; % transform
-            base_vec = base_vec(:,1:3); % extract first 3 dims
+
+            % create a dimension deleter (delete 4th dim of output)
+            H = eye(4);
+            H(4,:) = [];
+
+            base_vec = (H * T * local_vec')'; % transform
         end
 
         function local_vec = base2local(this, base_vec)
             arguments
-                this(1,:) ReferenceFrame3d
+                this(:,1) ReferenceFrame3d
                 base_vec(:,3)
             end
 
@@ -87,8 +91,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             end
 
             base_vec(:,4) = 1; % to homogeneous coordinates
-            local_vec = (T * base_vec')'; % transform
-            local_vec = local_vec(:,1:3); % extract first 3 dims
+
+            % create a dimension deleter (delete 4th dim of output)
+            H = eye(4);
+            H(4,:) = [];
+
+            local_vec = (H * T * base_vec')'; % transform
         end
 
         function new = translate(this, dx)
@@ -124,9 +132,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
         function new = compose(this)
             arguments (Repeating)
-                this(1,:) ReferenceFrame3d
+                this(:,1) ReferenceFrame3d
             end
-            this = [this{:}];
+            this = vertcat(this{:});
             T_new = this(end).T;
             for i = numel(this)-1:-1:1
                 T_new = this(i).T * T_new;
