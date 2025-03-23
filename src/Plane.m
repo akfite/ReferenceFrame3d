@@ -12,7 +12,13 @@ classdef Plane < ReferenceFrame3d
 
     %% Overloads
     methods
-        function plot(this)
+        function plot(this, opts)
+            arguments
+                this(1,1) ReferenceFrame3d
+                opts.Size(1,2) double = [1 1] % [x y]
+                opts.GridSpacing(1,2) uint32 = opts.Size % grid density for display [x y]
+            end
+
             plot@ReferenceFrame3d(this)
 
             ax = gca;
