@@ -104,44 +104,51 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             local_vec = (H * T * base_vec')'; % transform
         end
 
-        function new = translate(this, dx)
+        function this = translate(this, dx)
             arguments
                 this(1,1) ReferenceFrame3d
-                dx(3,1) double
+                dx(3,1) double {mustBeReal, mustBeFinite}
             end
-            new = ReferenceFrame3d(this.T * makehgtform('translate', dx));
-            if nargout == 0, this.T = T_new; end
+            this.T = this.T * makehgtform('translate', dx);
         end
 
-        function new = reposition(this, new_pos)
+        function this = reposition(this, new_pos)
             arguments
                 this(1,1) ReferenceFrame3d
-                new_pos(3,1) double
+                new_pos(3,1) double {mustBeReal, mustBeFinite}
             end
-            T_new = this.T;
-            T_new(1:3,4) = new_pos;
-            new = ReferenceFrame3d(T_new);
-            if nargout == 0, this.T = T_new; end
+            this.T(1:3,4) = new_pos;
         end
         
-        function new = rotate(this, dcm)
+        function this = rotate(this, dcm)
             arguments
                 this(1,1) ReferenceFrame3d
                 dcm(3,3) double
             end
             T = dcm; %#ok<*PROPLC>
             T(4,4) = 1; % 3x3 -> 4x4 with no translation
-            T_new = this.T * T;
-            new = ReferenceFrame3d(T_new);
-            if nargout == 0, this.T = T_new; end
+            this.T = this.T * T;
         end
 
-        function new = rotate_euler(this, roll, pitch, yaw)
-            T = makehgtform('xrotate', roll * pi/180) ...
-                * makehgtform('yrotate', pitch * pi/180) ...
-                * makehgtform('zrotate', yaw * pi/180);
-            new = ReferenceFrame3d(T * this.T);
-            if nargout == 0, this.T = new.T; end
+        function this = rotate_euler(this, roll, pitch, yaw)
+            cr = cos(roll);
+            sr = sin(roll);
+            cp = cos(pitch);
+            sp = sin(pitch);
+            cy = cos(yaw);
+            sy = sin(yaw);
+    
+            T = [...
+                          cy*cp,              sy*cp,      -sp,       0;
+                -sy*cr+cy*sp*sr,     cy*cr+sy*sp*sr,    cp*sr,       0;
+                 sy*sr+cy*sp*cr,    -cy*sr+sy*sp*cr,    cp*cr,       0
+                              0,                  0,        0,       1];
+
+            this.T = this.T * T;
+        end
+
+        function this = rotate_eulerd(this, roll, pitch, yaw)
+            this.rotate_euler(roll * pi/180, pitch * pi/180, yaw * pi/180);
         end
 
         function new = compose(this)
@@ -156,12 +163,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             new = ReferenceFrame3d(T_new);
         end
 
-        function inverse = inv(this)
+        function this = inv(this)
             R_inv = this.R'; % transpose = inverse for a DCM by definition
             t_inv = -R_inv * this.t;
-            T_new = [R_inv, t_inv; 0 0 0 1];
-            inverse = ReferenceFrame3d(T_new);
-            if nargout == 0, this.T = T_new; end
+            this.T = [R_inv, t_inv; 0 0 0 1];
         end
 
         function T = as_matrix(this)
@@ -237,16 +242,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             new = ReferenceFrame3d(this.T * other.T);
         end
 
-        function new = ctranspose(this)
-            new = transpose(this); % complex types are not supported (' == .')
-            if nargout == 0, this.T = T_new; end
+        function this = ctranspose(this)
+            transpose(this); % complex types are not supported (' == .')
         end
 
-        function new = transpose(this)
-            T_new = this.T;
-            T_new(1:3,1:3) = T_new(1:3,1:3).';
-            new = ReferenceFrame3d(T_new);
-            if nargout == 0, this.T = T_new; end
+        function this = transpose(this)
+            this.T(1:3,1:3) = this.T(1:3,1:3).';
         end
     end
 
@@ -274,7 +275,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 opts.LineWidth(1,3) double = 1
                 opts.LineStyle(1,:) char = '-'
                 opts.LineLength(1,3) double = 1
-                opts.EnableArrowheads(1,3) logical = 1
+                opts.EnableArrowheads(1,3) matlab.lang.OnOffSwitchState = 1
             end
 
             tform = this.get_or_create_hgtransform(opts.Parent);
@@ -340,13 +341,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 'Clipping', 'off');
 
             function plot_arrowhead(parent, base_length, color, basis)
-                % define the cone in the N-frame
                 m = 20; n = 2;
                 theta = linspace(0, 2*pi, m);
                 R = linspace(0, 0.2*base_length, n);
                 [T, R] = meshgrid(theta, R);
     
-                % to cartesian coordinates
                 switch basis
                     case 1
                         x = base_length - R;
