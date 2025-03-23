@@ -137,19 +137,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         end
 
         function new = rotate_euler(this, roll, pitch, yaw)
-            cr = cosd(roll);
-            sr = sind(roll);
-            cp = cosd(pitch);
-            sp = sind(pitch);
-            cy = cosd(yaw);
-            sy = sind(yaw);
-
-            dcm = [...
-                cy*cp,              sy*cp,      -sp;
-                -sy*cr+cy*sp*sr,     cy*cr+sy*sp*sr,    cp*sr;
-                sy*sr+cy*sp*cr,    -cy*sr+sy*sp*cr,    cp*cr];
-
-            new = this.rotate(dcm);
+            T = makehgtform('xrotate', roll * pi/180) ...
+                * makehgtform('yrotate', pitch * pi/180) ...
+                * makehgtform('zrotate', yaw * pi/180);
+            new = ReferenceFrame3d(T * this.T);
             if nargout == 0, this.T = new.T; end
         end
 
@@ -283,6 +274,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 opts.LineWidth(1,3) double = 1
                 opts.LineStyle(1,:) char = '-'
                 opts.LineLength(1,3) double = 1
+                opts.EnableArrowheads(1,3) logical = 1
             end
 
             tform = this.get_or_create_hgtransform(opts.Parent);
@@ -334,6 +326,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                     'LineStyle', opts.LineStyle, ...
                     'Clipping', 'off');
             end
+            for i = 1:3
+                if opts.EnableArrowheads(i)
+                    plot_arrowhead(this.h_frame, sz(i), opts.Colors(i), i);
+                end
+            end
             line(this.h_frame, ...
                 'XData', 0, 'YData', 0, 'ZData', 0, ...
                 'Color', 'k', ...
@@ -341,6 +338,37 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 'MarkerSize', 12, ...
                 'Hittest','off','PickableParts','none',...
                 'Clipping', 'off');
+
+            function plot_arrowhead(parent, base_length, color, basis)
+                % define the cone in the N-frame
+                m = 20; n = 2;
+                theta = linspace(0, 2*pi, m);
+                R = linspace(0, 0.2*base_length, n);
+                [T, R] = meshgrid(theta, R);
+    
+                % to cartesian coordinates
+                switch basis
+                    case 1
+                        x = base_length - R;
+                        y = R.*.2.*sin(T);
+                        z = R.*.2.*cos(T);
+                    case 2
+                        y = base_length - R;
+                        z = R.*.2.*sin(T);
+                        x = R.*.2.*cos(T);
+                    case 3
+                        z = base_length - R;
+                        x = R.*.2.*sin(T);
+                        y = R.*.2.*cos(T);
+                end
+
+                surface(x, y, z, ...
+                    'Parent', parent, ...
+                    'Clipping', 'off', ...
+                    'EdgeColor', 'none', ...
+                    'FaceColor', color, ...
+                    'HitTest', 'off', 'PickableParts', 'none');
+            end
         end
 
         function tform = get_or_create_hgtransform(this, parent)
