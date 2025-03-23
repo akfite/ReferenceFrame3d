@@ -178,10 +178,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         function as_quaternion()
         end
 
-        function [roll, pitch, yaw] = as_euler()
+        function [roll, pitch, yaw] = as_euler(this)
+            dcm = this.R;
+            roll = atan2(dcm(2,3,:), dcm(3,3,:));
+            pitch = asin(-dcm(1,3,:));
+            yaw = atan2(dcm(1,2,:), dcm(1,1,:));
         end
 
-        function [roll, pitch, yaw] = angle_between(A, B)
+        function [roll, pitch, yaw] = as_eulerd(this)
+            [roll, pitch, yaw] = as_euler(this);
+            roll = roll * 180/pi;
+            pitch = pitch * 180/pi;
+            yaw = yaw * 180/pi;
         end
 
         function [p, dist] = intersect_plane(this, observer, ray, opts)
@@ -473,6 +481,28 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
     %% matlab.mixin.CustomDisplay
     methods (Access = protected)
+        function footer = getFooter(this)
+            if ~isscalar(this)
+                footer = ''; return
+            end
+
+            deg = char(176);
+            [r,p,y] = this.as_eulerd();
+
+            footer = sprintf(...
+                ['   origin:\n' ...
+                '\n' ...
+                '       %14.9f\n' ...
+                '       %14.9f\n' ...
+                '       %14.9f\n' ...
+                '\n' ...
+                '   orientation (yaw-pitch-roll wrt base frame):\n' ...
+                '\n' ...
+                '       roll  = %14.9f%s\n' ...
+                '       pitch = %14.9f%s\n' ...
+                '       yaw   = %14.9f%s\n'], ...
+                this.t, r, deg, p, deg, y, deg);
+        end
     end
 
 end
