@@ -42,6 +42,7 @@ function demo_ReferenceFrame3d()
     clock = tic;
     time = toc(clock);
 
+    profile on
     while true
         if ~isvalid(hfig)
             break
@@ -53,16 +54,15 @@ function demo_ReferenceFrame3d()
         % base frame rotates at 30 deg/s around the z axis
         yaw = 30 * elapsed;
         base.rotate_eulerd(0, 0, yaw);
-        base.update_hgtransform(); % TODO: handle this via listeners
 
         % an attachment on the arm rotates in the opposite direction at 90 deg/s
         roll = -300 * elapsed;
         pitch = 100 * elapsed;
         yaw = 45 * elapsed;
         first_arm.rotate_eulerd(roll, pitch, yaw);
-        first_arm.update_hgtransform();
 
         drawnow
     end
+    profile viewer
     
 end

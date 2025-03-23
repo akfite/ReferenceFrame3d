@@ -1,7 +1,7 @@
 classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
     
-    properties (SetAccess = private)
-        T(4,4) double {mustBeReal} = eye(4) % homogeneous transform (rotation & translation)
+    properties
+        T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
     end
 
     properties (Dependent)
@@ -423,7 +423,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         end
     end
 
-    %% Dependent property accessors
+    %% Property accessors
+
+    % set
+    methods
+        function set.T(this, T_new)
+            ReferenceFrame3d.validate_transform(T_new);
+            this.T = T_new;
+            this.update_hgtransform();
+        end
+    end
+
+    % get
     methods
         function v = get.R(this)
             v = this.T(1:3,1:3);
