@@ -175,6 +175,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             T = this.T;
         end
 
+        function R = as_dcm(this)
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
+            R = this.R;
+        end
+
         function as_quaternion()
         end
 
