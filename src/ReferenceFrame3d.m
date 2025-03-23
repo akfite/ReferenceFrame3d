@@ -35,7 +35,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 T = matrix * makehgtform('translate', origin);
             end
 
-            ReferenceFrame3d.validate_transform(T);
             this.T = T;
         end
     end
