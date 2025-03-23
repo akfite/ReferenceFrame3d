@@ -136,6 +136,23 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             if nargout == 0, this.T = T_new; end
         end
 
+        function new = rotate_euler(this, roll, pitch, yaw)
+            cr = cosd(roll);
+            sr = sind(roll);
+            cp = cosd(pitch);
+            sp = sind(pitch);
+            cy = cosd(yaw);
+            sy = sind(yaw);
+
+            dcm = [...
+                cy*cp,              sy*cp,      -sp;
+                -sy*cr+cy*sp*sr,     cy*cr+sy*sp*sr,    cp*sr;
+                sy*sr+cy*sp*cr,    -cy*sr+sy*sp*cr,    cp*cr];
+
+            new = this.rotate(dcm);
+            if nargout == 0, this.T = new.T; end
+        end
+
         function new = compose(this)
             arguments (Repeating)
                 this(:,1) ReferenceFrame3d
@@ -263,8 +280,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                 this(1,1) ReferenceFrame3d
                 opts.Parent = []
                 opts.Colors(1,3) char = 'rgb' % for basis xyz
-                opts.LineWidth(1,3) double = 2
+                opts.LineWidth(1,3) double = 1
                 opts.LineStyle(1,:) char = '-'
+                opts.LineLength(1,3) double = 1
             end
 
             tform = this.get_or_create_hgtransform(opts.Parent);
@@ -279,7 +297,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             ax = ancestor(tform, 'axes');
             assert(~isempty(ax), ...
                 'The ancestor axis to the hgtransform is empty.');
-            scale = 0.1 * max(diff(xlim(ax)), diff(ylim(ax)));
+            sz = opts.LineLength;
 
             % we may wish to plot other things to the reference frame transform,
             % so let's organize the basis vector data under its own group
@@ -287,9 +305,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
             if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
                 % interleave NaNs to plot all basis vectors as a single object
-                xdata = [0 scale NaN; 0 0 NaN; 0 0 NaN]';
-                ydata = [0 0 NaN; 0 scale NaN; 0 0 NaN]';
-                zdata = [0 0 NaN; 0 0 NaN; 0 scale NaN]';
+                xdata = [0 sz(1) NaN; 0 0 NaN; 0 0 NaN]';
+                ydata = [0 0 NaN; 0 sz(2) NaN; 0 0 NaN]';
+                zdata = [0 0 NaN; 0 0 NaN; 0 sz(3) NaN]';
                 line(this.h_frame, ...
                     xdata(:), ydata(:), zdata(:), ...
                     'Color', opts.Colors(1), ...
@@ -298,19 +316,19 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                     'Clipping', 'off');
             else
                 line(this.h_frame, ...
-                    [0 scale], [0 0], [0 0], ...
+                    [0 sz(1)], [0 0], [0 0], ...
                     'Color', opts.Colors(1), ...
                     'LineWidth', opts.LineWidth(1), ...
                     'LineStyle', opts.LineStyle, ...
                     'Clipping', 'off');
                 line(this.h_frame, ....
-                    [0 0], [0 scale], [0 0], ...
+                    [0 0], [0 sz(2)], [0 0], ...
                     'Color', opts.Colors(2), ...
                     'LineWidth', opts.LineWidth(2), ...
                     'LineStyle', opts.LineStyle, ...
                     'Clipping', 'off');
                 line(this.h_frame, ...
-                    [0 0], [0 0], [0 scale], ...
+                    [0 0], [0 0], [0 sz(3)], ...
                     'Color', opts.Colors(3), ...
                     'LineWidth', opts.LineWidth(3), ...
                     'LineStyle', opts.LineStyle, ...
@@ -327,6 +345,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
         function tform = get_or_create_hgtransform(this, parent)
             %GET_HGTRANSFORM Get the graphics transform paired to this object.
+
+            arguments
+                this(1,1) ReferenceFrame3d
+                parent = []
+            end
 
             if isa(parent, 'ReferenceFrame3d')
                 assert(~isempty(parent.h_transform) && isvalid(parent.h_transform), ...
