@@ -17,6 +17,7 @@ classdef Plane < ReferenceFrame3d
                 this(1,1) ReferenceFrame3d
                 opts.Size(1,2) double = [1 1] % [x y]
                 opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
+                opts.DisplayStyle(1,1) string = "origin"
             end
 
             plot@ReferenceFrame3d(this)
