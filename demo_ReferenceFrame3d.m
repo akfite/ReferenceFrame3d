@@ -42,7 +42,9 @@ function demo_ReferenceFrame3d()
     clock = tic;
     time = toc(clock);
 
-    profile on
+    warnstate = warning('off', 'MATLAB:hg:DiceyTransformMatrix');
+    on_exit(end+1) = onCleanup(@() warning(warnstate));
+
     while true
         if ~isvalid(hfig)
             break
@@ -63,6 +65,5 @@ function demo_ReferenceFrame3d()
 
         drawnow
     end
-    profile viewer
     
 end
