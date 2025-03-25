@@ -62,6 +62,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
     %% Math & utility
     methods
         function base_vec = local2base(this, local_vec)
+            %LOCAL2BASE Transform a vector from the local to base frame (rot + translate)
             arguments
                 this(:,1) ReferenceFrame3d
                 local_vec(:,3)
@@ -83,6 +84,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
         end
 
         function local_vec = base2local(this, base_vec)
+            %BASE2LOCAL Transform a vector from the base to local frame (rot + translate)
             arguments
                 this(:,1) ReferenceFrame3d
                 base_vec(:,3)
@@ -103,12 +105,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             local_vec = (H * T * base_vec')'; % transform
         end
 
-        function this = translate(this, dx)
+        function this = translate(this, dxyz)
+            %TRANSLATE Shift the origin by an incremental amount.
             arguments
                 this(1,1) ReferenceFrame3d
-                dx(3,1) double {mustBeReal, mustBeFinite}
+                dxyz(3,1) double {mustBeReal, mustBeFinite}
             end
-            this.T = this.T * makehgtform('translate', dx);
+            this.T(1:3,4) = this.T(1:3,4) + dxyz;
         end
 
         function this = reposition(this, new_pos)
@@ -268,16 +271,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
     %% Graphics
     methods
         function show(this)
-            % draw everything in a new, dedicated figure
+            %SHOW Draw everything in a new, dedicated figure
 
-            % DEBUG/TODO: remove
             hfig = figure;
             ax = axes('parent', hfig);
-            xlim(ax, [-1 1]); % TODO: consider frame origin
-            ylim(ax, [-1 1]);
-            zlim(ax, [-1 1]);
-            grid on; box on;
-            this.plot('Colors','k', LineStyle=':');
+            grid(ax, 'on');
+            box(ax, 'on');
+
+            this.plot('parent',ax);
         end
 
         function plot(this, opts)
@@ -308,7 +309,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
 
             % we may wish to plot other things to the reference frame transform,
             % so let's organize the basis vector data under its own group
-            this.h_frame = hggroup('parent', tform, 'tag', 'RF3D_BASIS_VECTORS');
+            this.h_frame = hggroup('Parent', tform, 'Tag', 'RF3D_BASIS_GROUP');
 
             if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
                 % interleave NaNs to plot all basis vectors as a single object
@@ -320,26 +321,30 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
                     'Color', opts.Colors(1), ...
                     'LineWidth', opts.LineWidth(1), ...
                     'LineStyle', opts.LineStyle, ...
-                    'Clipping', 'off');
+                    'Clipping', 'off', ...
+                    'Tag', 'RF3D_BASIS_VECTORS');
             else
                 line(this.h_frame, ...
                     [0 sz(1)], [0 0], [0 0], ...
                     'Color', opts.Colors(1), ...
                     'LineWidth', opts.LineWidth(1), ...
                     'LineStyle', opts.LineStyle, ...
-                    'Clipping', 'off');
+                    'Clipping', 'off', ...
+                    'Tag', 'RF3D_BASIS_VECTORS');
                 line(this.h_frame, ....
                     [0 0], [0 sz(2)], [0 0], ...
                     'Color', opts.Colors(2), ...
                     'LineWidth', opts.LineWidth(2), ...
                     'LineStyle', opts.LineStyle, ...
-                    'Clipping', 'off');
+                    'Clipping', 'off', ...
+                    'Tag', 'RF3D_BASIS_VECTORS');
                 line(this.h_frame, ...
                     [0 0], [0 0], [0 sz(3)], ...
                     'Color', opts.Colors(3), ...
                     'LineWidth', opts.LineWidth(3), ...
                     'LineStyle', opts.LineStyle, ...
-                    'Clipping', 'off');
+                    'Clipping', 'off', ...
+                    'Tag', 'RF3D_BASIS_VECTORS');
             end
             for i = 1:3
                 if opts.EnableArrowheads(i)
