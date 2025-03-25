@@ -77,8 +77,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             local_vec(:,4) = 1; % to homogeneous coordinates
 
             % create a dimension deleter (delete 4th dim of output)
-            H = eye(4);
-            H(4,:) = [];
+            H = [
+                1 0 0 0
+                0 1 0 0
+                0 0 1 0
+                ];
 
             base_vec = (H * T * local_vec')'; % transform
         end
@@ -99,8 +102,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             base_vec(:,4) = 1; % to homogeneous coordinates
 
             % create a dimension deleter (delete 4th dim of output)
-            H = eye(4);
-            H(4,:) = [];
+            H = [
+                1 0 0 0
+                0 1 0 0
+                0 0 1 0
+                ];
 
             local_vec = (H * T * base_vec')'; % transform
         end
