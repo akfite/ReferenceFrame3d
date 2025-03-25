@@ -51,15 +51,30 @@ classdef Plane < ReferenceFrame3d
                 this(1,1) ReferenceFrame3d
                 opts.Size(1,2) double = [4 4] % [x y]
                 opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
-                opts.DisplayStyle(1,1) string = "origin"
+                opts.PlaneOffset(1,2) double = [nan nan] % for display, [x y] coords
+
+                % RefereceFrame3d options
+                opts.Parent = []
+                opts.Colors(1,3) char = 'rgb' % for basis xyz
+                opts.LineWidth(1,3) double = 1
+                opts.LineStyle(1,:) char = '-'
+                opts.LineLength(1,3) double = 1
+                opts.EnableArrowheads(1,3) matlab.lang.OnOffSwitchState = 1
             end
 
-            plot@ReferenceFrame3d(this);
+            plot@ReferenceFrame3d(this, ...
+                'Parent', opts.Parent, ...
+                'Colors', opts.Colors, ...
+                'LineWidth', opts.LineWidth, ...
+                'LineStyle', opts.LineStyle, ...
+                'LineWidth', opts.LineLength, ...
+                'EnableArrowheads', opts.EnableArrowheads);
 
-            % calculate number of grid lines to draw in each dim
-            if any(isnan(opts.GridLineSpacing))
-                opts.GridLineSpacing = opts.Size;
-            end
+            % override default options
+            inan = isnan(opts.GridLineSpacing);
+            opts.GridLineSpacing(inan) = opts.Size(inan);
+            inan = isnan(opts.PlaneOffset);
+            opts.PlaneOffset(inan) = -opts.Size(inan) ./ 2; % center the plane by default
 
             grid_x = 0 : opts.GridLineSpacing(1) : opts.Size(1);
             grid_y = 0 : opts.GridLineSpacing(2) : opts.Size(2);
@@ -69,6 +84,8 @@ classdef Plane < ReferenceFrame3d
             if grid_y(end) ~= opts.Size(2)
                 grid_y(end+1) = opts.Size(2);
             end
+            grid_x = grid_x + opts.PlaneOffset(1);
+            grid_y = grid_y + opts.PlaneOffset(2);
 
             [xdata, ydata] = meshgrid(grid_x, grid_y);
 
