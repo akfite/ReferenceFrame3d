@@ -1,13 +1,47 @@
 classdef Plane < ReferenceFrame3d
     %PLANE A 3-dimensional plane.
     
-    properties (Dependent)
-        normal(1,3) double % the normal vector that defines orientation
-    end
-
     % graphics
     properties (Access = protected)
         h_plane
+    end
+
+    %% Constructor
+    methods
+        function this = Plane(varargin)
+            narginchk(0,2);
+
+            switch nargin
+                case 0 % default constructor
+                    this.T = eye(4);
+                case 1 % convert from ReferenceFrame3d
+                    this.T = varargin{1}.T;
+                case 2 % create from point & normal vector
+                    point = varargin{1};
+                    normal = varargin{2};
+
+                    % pick any arbitrary orthogonal x and y vectors
+                    z_basis = normal / norm(normal);
+                    
+                    if abs(z_basis(1)) < 0.9  % if z is not too close to x-axis
+                        whatever = [1; 0; 0];
+                    else  % if z is close to x-axis, use y-axis instead
+                        whatever = [0; 1; 0];
+                    end
+                    
+                    x_basis = cross(whatever, z_basis);
+                    x_basis = x_basis / norm(x_basis);
+                    
+                    y_basis = cross(z_basis, x_basis);
+                    y_basis = y_basis / norm(y_basis);
+
+                    % create the transform
+                    T = [x_basis; y_basis; z_basis]';
+                    T(4,4) = 1;
+                    T(1:3,4) = point;
+                    this.T = T;
+            end
+        end
     end
 
     %% Overloads
@@ -15,12 +49,12 @@ classdef Plane < ReferenceFrame3d
         function plot(this, opts)
             arguments
                 this(1,1) ReferenceFrame3d
-                opts.Size(1,2) double = [1 1] % [x y]
+                opts.Size(1,2) double = [4 4] % [x y]
                 opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
                 opts.DisplayStyle(1,1) string = "origin"
             end
 
-            plot@ReferenceFrame3d(this)
+            plot@ReferenceFrame3d(this);
 
             % calculate number of grid lines to draw in each dim
             if any(isnan(opts.GridLineSpacing))
@@ -68,13 +102,6 @@ classdef Plane < ReferenceFrame3d
                 'Offset', 0, ...
                 'Tol', opts.Tol,...
                 'Debug', opts.Debug);
-        end
-    end
-
-    %% Dependent
-    methods
-        function v = get.normal(this)
-            v = this.dcm(:,3);
         end
     end
 
