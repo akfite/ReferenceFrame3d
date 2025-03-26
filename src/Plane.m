@@ -2,7 +2,7 @@ classdef Plane < ReferenceFrame3d
     %PLANE A 3-dimensional plane.
     
     % graphics
-    properties (Access = protected)
+    properties (Access = protected, Transient)
         h_plane
     end
 

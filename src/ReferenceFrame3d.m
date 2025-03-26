@@ -13,7 +13,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay &
     end
 
     % graphics
-    properties (Access = protected)
+    properties (Access = protected, Transient)
         h_transform
         h_frame
     end
