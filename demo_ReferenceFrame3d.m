@@ -6,9 +6,10 @@ function demo_ReferenceFrame3d()
     grid on
     xlim(ax, [-15 15]);
     ylim(ax, [-15 15]);
-    zlim(ax, [-15 15]);
-    view(45,45)
-    axis vis3d
+    zlim(ax, [-10 10]);
+    view(ax, 45,45)
+    axis(ax, 'vis3d');
+    rotate3d(ax, 'on');
     on_exit = onCleanup(@() delete(hfig));
 
     % draw the world (fixed) coordinate system first
@@ -72,16 +73,23 @@ function demo_ReferenceFrame3d()
 
         % now, as we rotate, let's animate a circular path in the second arm's frame.
         % we'll observe how we can plot directly in local coordinates, and the plot
-        % will handle displaying it in the correct global location
-        xc = cos(10 * time);
+        % will automatically place it in the correct world frame location
+        xc = -cos(10 * time);
         yc = sin(10 * time);
         h = plot3(second_arm.get_or_create_hgtransform(), xc, yc, 0, 'k.');
 
         % we'll also translate the coordinate out of the local frame and into the
         % world frame to confirm that the transform works correctly
-        frames = [base, first_arm, second_arm]; % concatenate to form a transform sequence
-        base_pos = frames.local2base([xc yc 0]); % frames(end) transformed to frames(1)
-        h(2) = plot3(ax, ... % notice the parent is the AXIS now (world frame)
+
+        % concatenate to form a transformation sequence
+        frames = [base, first_arm, second_arm]; 
+
+        % transform from local of frame(end) to base of frame(1)
+        base_pos = frames.local2base([xc yc 0]);
+
+        % plot directly to the axis now (world frame) to prove equivalence w.r.t.
+        % plotting in the local frame
+        h(2) = plot3(ax, ... 
             base_pos(1), base_pos(2), base_pos(3), 'ro');
 
         drawnow

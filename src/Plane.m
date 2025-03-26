@@ -3,7 +3,7 @@ classdef Plane < ReferenceFrame3d
     
     % graphics
     properties (Access = protected, Transient)
-        h_plane
+        h_surface matlab.graphics.primitive.Surface
     end
 
     %% Constructor
@@ -104,7 +104,7 @@ classdef Plane < ReferenceFrame3d
             [xdata, ydata] = meshgrid(grid_x, grid_y);
 
             % always create the plane at the origin at +Z
-            this.h_plane = surface(...
+            this.h_surface = surface(...
                 'XData', xdata, ...
                 'YData', ydata, ...
                 'ZData', zeros(size(xdata)), ...
@@ -116,7 +116,7 @@ classdef Plane < ReferenceFrame3d
                 'Clipping', 'off', ...
                 'HitTest','off',...
                 'PickableParts','none',...
-                'Parent', this.h_frame);
+                'Parent', this.h_plot_group);
         end
 
         function [p, dist] = intersect_plane(this, observer, ray, opts)
