@@ -14,7 +14,7 @@ classdef Plane < ReferenceFrame3d
             %   Usage:
             %
             %       p = Plane()
-            %       p = Plane(ref_frame)
+            %       p = Plane(transform)
             %       p = Plane(point, normal)
             %
             narginchk(0,2);
@@ -22,8 +22,13 @@ classdef Plane < ReferenceFrame3d
             switch nargin
                 case 0 % default constructor
                     this.T = eye(4);
-                case 1 % convert from ReferenceFrame3d
-                    this.T = varargin{1}.T;
+                case 1 % copy from ReferenceFrame3d
+                    if isa(varargin{1}, 'ReferenceFrame3d')
+                        this.T = varargin{1}.T;
+                    else
+                        % user provides 4x4 transform explicitly
+                        this.T = varargin{1};
+                    end
                 case 2 % create from point & normal vector
                     point = varargin{1};
                     normal = varargin{2};
