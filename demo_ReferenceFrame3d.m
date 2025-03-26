@@ -39,6 +39,7 @@ function demo_ReferenceFrame3d()
     % the first arm, i.e. use the first arm's frame)
     pos = [2 0 3];
     second_arm = Plane(ReferenceFrame3d(eye(3), pos)); % in 1st arm's frame
+    second_arm.rotate_eulerd(0, 15, 30);
     second_arm.plot('Parent', first_arm.get_or_create_hgtransform());
     line([0 pos(1)], [0 pos(2)], [0 pos(3)], ...
         'Parent', first_arm.get_or_create_hgtransform(), ...
@@ -74,13 +75,13 @@ function demo_ReferenceFrame3d()
         % will handle displaying it in the correct global location
         xc = cos(10 * time);
         yc = sin(10 * time);
-        h = plot3(second_arm.get_or_create_hgtransform(), xc, yc, 0.5, 'k.');
+        h = plot3(second_arm.get_or_create_hgtransform(), xc, yc, 0, 'k.');
 
         % we'll also translate the coordinate out of the local frame and into the
-        % global frame to confirm that the transform works correctly
-        frames = [base first_arm second_arm];
-        base_pos = frames.local2base([xc yc 0.5]);
-        h(2) = plot3(second_arm.get_or_create_hgtransform(), ...
+        % world frame to confirm that the transform works correctly
+        frames = [base, first_arm, second_arm]; % concatenate to form a transform sequence
+        base_pos = frames.local2base([xc yc 0]); % frames(end) transformed to frames(1)
+        h(2) = plot3(ax, ... % notice the parent is the AXIS now (world frame)
             base_pos(1), base_pos(2), base_pos(3), 'ro');
 
         drawnow
