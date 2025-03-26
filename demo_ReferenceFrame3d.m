@@ -22,23 +22,30 @@ function demo_ReferenceFrame3d()
         'LineLength', 3);
     
     % the first arm is fixed to the base and rotates with it
-    line([0 10], [0 0], [0 0], ...
+    pos = [10 0 0];
+    first_arm = ReferenceFrame3d(eye(3), pos); % track with a RF3d object
+    first_arm.plot(...
+        'Parent', base.get_or_create_hgtransform(), ...
+        'LineLength', 1);
+    % draw the first arm (attached to the base, so we use the base's coordinate frame)
+    line([0 pos(1)], [0 pos(2)], [0 pos(3)], ...
         'Parent', base.get_or_create_hgtransform(), ...
         'LineWidth', 2, ...
         'Color', 'k', ...
         'Marker', '.', ...
         'Tag', 'FIRST_ARM');
-    first_arm = Plane(ReferenceFrame3d(eye(3), [10 0 0])); % track with a RF3d object
-    first_arm.plot(...
-        'Parent', base.get_or_create_hgtransform(), ...
-        'LineLength', 1);
 
-    % the second arm is mounted to the first, pitched at a 45 degree angle
-    % and will also rotate around the z axis.  we'll define the coordinate frame
-    % first and then use internal methods to figure out where the parts are in
-    % world coordinates
-    % TODO
-
+    % the second arm is mounted to the first (so we define its position relative to
+    % the first arm, i.e. use the first arm's frame)
+    pos = [2 0 3];
+    second_arm = Plane(ReferenceFrame3d(eye(3), pos)); % in 1st arm's frame
+    second_arm.plot('Parent', first_arm.get_or_create_hgtransform());
+    line([0 pos(1)], [0 pos(2)], [0 pos(3)], ...
+        'Parent', first_arm.get_or_create_hgtransform(), ...
+        'LineWidth', 2, ...
+        'Color', 'k', ...
+        'Marker', '.', ...
+        'Tag', 'SECOND_ARM');
 
     clock = tic;
     time = toc(clock);
@@ -59,12 +66,25 @@ function demo_ReferenceFrame3d()
         base.rotate_eulerd(0, 0, yaw);
 
         % an attachment on the arm rotates in the opposite direction at 90 deg/s
-        roll = -300 * elapsed;
-        pitch = 100 * elapsed;
-        yaw = 45 * elapsed;
-        first_arm.rotate_eulerd(roll, pitch, yaw);
+        yaw = -180 * elapsed;
+        first_arm.rotate_eulerd(0, 0, yaw);
+
+        % now, as we rotate, let's animate a circular path in the second arm's frame.
+        % we'll observe how we can plot directly in local coordinates, and the plot
+        % will handle displaying it in the correct global location
+        xc = cos(10 * time);
+        yc = sin(10 * time);
+        h = plot3(second_arm.get_or_create_hgtransform(), xc, yc, 0.5, 'k.');
+
+        % we'll also translate the coordinate out of the local frame and into the
+        % global frame to confirm that the transform works correctly
+        frames = [base first_arm second_arm];
+        base_pos = frames.local2base([xc yc 0.5]);
+        h(2) = plot3(second_arm.get_or_create_hgtransform(), ...
+            base_pos(1), base_pos(2), base_pos(3), 'ro');
 
         drawnow
+        delete(h);
     end
     
 end

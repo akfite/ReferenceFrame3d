@@ -1,4 +1,4 @@
-classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
+classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay & matlab.mixin.Heterogeneous
     
     properties
         T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
@@ -60,7 +60,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
     end
 
     %% Math & utility
-    methods
+    methods (Sealed)
         function base_vec = local2base(this, local_vec)
             %LOCAL2BASE Transform a vector from the local to base frame (rot + translate)
             arguments
@@ -207,7 +207,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay
             pitch = pitch * 180/pi;
             yaw = yaw * 180/pi;
         end
+    end
 
+    methods
         function [p, dist] = intersect_plane(this, observer, ray, opts)
             arguments
                 this(1,1) ReferenceFrame3d
