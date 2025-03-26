@@ -308,7 +308,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.EnableArrowheads(1,3) matlab.lang.OnOffSwitchState = 1
             end
 
-            tform = this.get_or_create_hgtransform(opts.Parent);
+            tform = this.hgtransform(opts.Parent);
             this.update_hgtransform(); % TODO: this should happen via listeners
 
             if ~isempty(this.h_plot_group) ...
@@ -404,11 +404,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function tform = get_or_create_hgtransform(this, parent)
-            %GET_HGTRANSFORM Get the graphics transform paired to this object.
+        function tform = hgtransform(objs, parent)
+            %HGTRANSFORM Get the graphics transform paired to this object.
 
             arguments
-                this(1,1) ReferenceFrame3d
+                objs(:,1) ReferenceFrame3d
                 parent = []
             end
 
@@ -418,27 +418,36 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 parent = parent.h_transform;
             end
 
-            % consider the current transform invalid if the parent has changed
+            % consider the base transform invalid if the parent has changed
             if ~isempty(parent) && isvalid(parent) ...
-                    && ~isempty(this.h_transform) ...
-                    && isvalid(this.h_transform) ...
-                    && ~isequal(this.h_transform.Parent, parent)
-                delete(this.h_transform);
+                    && ~isempty(objs(1).h_transform) ...
+                    && isvalid(objs(1).h_transform) ...
+                    && ~isequal(objs(1).h_transform.Parent, parent)
+                % delete ALL graphics objects (start over)
+                objs.clear();
             end
 
             % create new axes only if we don't have a parent to target
             % AND there's no valid transform already
             if (isempty(parent) || ~isvalid(parent)) ...
-                    && (isempty(this.h_transform) || ~isvalid(this.h_transform))
+                    && (isempty(objs(1).h_transform) || ~isvalid(objs(1).h_transform))
                 parent = gca();
             end
 
-            % create a new transform
-            if isempty(this.h_transform) || ~isvalid(this.h_transform)
-                this.h_transform = hgtransform('Parent', parent);
+            % create a new transform for each object (only if necessary)
+            for i = 1:numel(objs)
+                % skip if a transform already exists and is parented correctly
+                % (parented to the previous transform in the sequence)
+                if (~isempty(objs(i).h_transform) && isvalid(objs(i).h_transform)) ...
+                        || (i > 1 && isequal(objs(i).h_transform.Parent, objs(i-1).h_transform))
+                    continue
+                end
+                delete(objs(i).h_transform);
+                objs(i).h_transform = hgtransform('Parent', parent);
+                parent = objs(i).h_transform;
             end
 
-            tform = this.h_transform;
+            tform = objs(end).h_transform;
         end
 
         function update_hgtransform(this)
