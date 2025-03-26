@@ -9,6 +9,14 @@ classdef Plane < ReferenceFrame3d
     %% Constructor
     methods
         function this = Plane(varargin)
+            %PLANE Construct a Plane in various ways.
+            %
+            %   Usage:
+            %
+            %       p = Plane()
+            %       p = Plane(ref_frame)
+            %       p = Plane(point, normal)
+            %
             narginchk(0,2);
 
             switch nargin
@@ -49,9 +57,9 @@ classdef Plane < ReferenceFrame3d
         function plot(this, opts)
             arguments
                 this(1,1) ReferenceFrame3d
-                opts.Size(1,2) double = [4 4] % [x y]
+                opts.Size(1,2) double {mustBeReal, mustBeFinite} = [4 4] % [x y]
                 opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
-                opts.PlaneOffset(1,2) double = [nan nan] % for display, [x y] coords
+                opts.PlaneOffset(1,2) double = [nan nan] % [x y]
 
                 % RefereceFrame3d options
                 opts.Parent = []
@@ -72,7 +80,8 @@ classdef Plane < ReferenceFrame3d
 
             % override default options
             inan = isnan(opts.GridLineSpacing);
-            opts.GridLineSpacing(inan) = opts.Size(inan);
+            opts.GridLineSpacing(inan) = opts.Size(inan); % no grid lines by default
+            opts.GridLineSpacing = min([opts.GridLineSpacing; opts.Size], [], 1);
             inan = isnan(opts.PlaneOffset);
             opts.PlaneOffset(inan) = -opts.Size(inan) ./ 2; % center the plane by default
 
@@ -114,6 +123,7 @@ classdef Plane < ReferenceFrame3d
                 opts.Debug(1,1) logical = true
             end
 
+            % by definition our Plane objects use x-y basis, so we enforce that here
             [p, dist] = intersect_plane@ReferenceFrame3d(this, observer, ray, ...
                 'Slice', 'xy', ...
                 'Offset', 0, ...
