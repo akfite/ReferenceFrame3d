@@ -1,4 +1,6 @@
-classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay & matlab.mixin.Heterogeneous
+classdef ReferenceFrame3d < matlab.mixin.Copyable ...
+        & matlab.mixin.CustomDisplay ...
+        & matlab.mixin.Heterogeneous
     
     properties
         T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
@@ -6,9 +8,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay &
 
     properties (Dependent)
         R(3,3) double % rotation submatrix
-        x(3,1) double % x basis (1st col)
-        y(3,1) double % y basis (2nd col)
-        z(3,1) double % z basis (3rd col)
+        x(3,1) double % x basis
+        y(3,1) double % y basis
+        z(3,1) double % z basis
         t(3,1) double % translation (origin of reference frame)
     end
 
