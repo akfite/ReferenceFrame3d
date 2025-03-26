@@ -500,7 +500,15 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay &
     end
 
     %% matlab.mixin.CustomDisplay
-    methods (Access = protected)
+    methods (Sealed, Access = protected)
+        function header = getHeader(obj)
+            header = getHeader@matlab.mixin.CustomDisplay(obj);
+        end
+
+        function groups = getPropertyGroups(obj)
+            groups = getPropertyGroups@matlab.mixin.CustomDisplay(obj);
+        end
+
         function footer = getFooter(this)
             deg = char(176);
 
@@ -531,6 +539,22 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable & matlab.mixin.CustomDisplay &
                 '       yaw   = %14.9f%s\n'], ...
                 footer, ...
                 frame.t, round(r+eps,9), deg, round(p+eps,9), deg, round(y+eps,9), deg);
+        end
+
+        function displayNonScalarObject(obj)
+            displayNonScalarObject@matlab.mixin.CustomDisplay(obj);
+        end
+
+        function displayScalarObject(obj)
+            displayScalarObject@matlab.mixin.CustomDisplay(obj);
+        end
+
+        function displayEmptyObject(obj)
+            displayEmptyObject@matlab.mixin.CustomDisplay(obj);
+        end
+
+        function displayScalarHandleToDeletedObject(obj)
+            displayScalarHandleToDeletedObject@matlab.mixin.CustomDisplay(obj);
         end
     end
 
