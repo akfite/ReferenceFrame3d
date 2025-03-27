@@ -59,65 +59,65 @@ classdef Plane < ReferenceFrame3d
 
     %% Overloads
     methods
-        function plot(this, opts)
-            arguments
-                this(1,1) ReferenceFrame3d
-                opts.Size(1,2) double {mustBeReal, mustBeFinite} = [4 4] % [x y]
-                opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
-                opts.PlaneOffset(1,2) double = [nan nan] % [x y]
-
-                % RefereceFrame3d options
-                opts.Parent = []
-                opts.Colors(1,3) char = 'rgb' % for basis xyz
-                opts.LineWidth(1,3) double = 1
-                opts.LineStyle(1,:) char = '-'
-                opts.LineLength(1,3) double = 1
-                opts.EnableArrowheads(1,3) matlab.lang.OnOffSwitchState = 1
-            end
-
-            plot@ReferenceFrame3d(this, ...
-                'Parent', opts.Parent, ...
-                'Colors', opts.Colors, ...
-                'LineWidth', opts.LineWidth, ...
-                'LineStyle', opts.LineStyle, ...
-                'LineWidth', opts.LineLength, ...
-                'EnableArrowheads', opts.EnableArrowheads);
-
-            % override default options
-            inan = isnan(opts.GridLineSpacing);
-            opts.GridLineSpacing(inan) = opts.Size(inan); % no grid lines by default
-            opts.GridLineSpacing = min([opts.GridLineSpacing; opts.Size], [], 1);
-            inan = isnan(opts.PlaneOffset);
-            opts.PlaneOffset(inan) = -opts.Size(inan) ./ 2; % center the plane by default
-
-            grid_x = 0 : opts.GridLineSpacing(1) : opts.Size(1);
-            grid_y = 0 : opts.GridLineSpacing(2) : opts.Size(2);
-            if grid_x(end) ~= opts.Size(1)
-                grid_x(end+1) = opts.Size(1);
-            end
-            if grid_y(end) ~= opts.Size(2)
-                grid_y(end+1) = opts.Size(2);
-            end
-            grid_x = grid_x + opts.PlaneOffset(1);
-            grid_y = grid_y + opts.PlaneOffset(2);
-
-            [xdata, ydata] = meshgrid(grid_x, grid_y);
-
-            % always create the plane at the origin at +Z
-            this.h_surface = surface(...
-                'XData', xdata, ...
-                'YData', ydata, ...
-                'ZData', zeros(size(xdata)), ...
-                'FaceColor', 0.6*[1 1 1], ...
-                'FaceAlpha', 0.2, ...
-                'EdgeColor', 0.2*[1 1 1], ...
-                'EdgeAlpha', 0.2, ...
-                'LineStyle', '-', ...
-                'Clipping', 'off', ...
-                'HitTest','off',...
-                'PickableParts','none',...
-                'Parent', this.h_plot_group);
-        end
+        % function plot(this, opts)
+        %     arguments
+        %         this(1,1) ReferenceFrame3d
+        %         opts.Size(1,2) double {mustBeReal, mustBeFinite} = [4 4] % [x y]
+        %         opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
+        %         opts.PlaneOffset(1,2) double = [nan nan] % [x y]
+        % 
+        %         % RefereceFrame3d options
+        %         opts.Parent = []
+        %         opts.Colors(1,3) char = 'rgb' % for basis xyz
+        %         opts.LineWidth(1,3) double = 1
+        %         opts.LineStyle(1,:) char = '-'
+        %         opts.LineLength(1,3) double = 1
+        %         opts.EnableArrowheads(1,3) matlab.lang.OnOffSwitchState = 1
+        %     end
+        % 
+        %     plot@ReferenceFrame3d(this, ...
+        %         'Parent', opts.Parent, ...
+        %         'Colors', opts.Colors, ...
+        %         'LineWidth', opts.LineWidth, ...
+        %         'LineStyle', opts.LineStyle, ...
+        %         'LineWidth', opts.LineLength, ...
+        %         'EnableArrowheads', opts.EnableArrowheads);
+        % 
+        %     % override default options
+        %     inan = isnan(opts.GridLineSpacing);
+        %     opts.GridLineSpacing(inan) = opts.Size(inan); % no grid lines by default
+        %     opts.GridLineSpacing = min([opts.GridLineSpacing; opts.Size], [], 1);
+        %     inan = isnan(opts.PlaneOffset);
+        %     opts.PlaneOffset(inan) = -opts.Size(inan) ./ 2; % center the plane by default
+        % 
+        %     grid_x = 0 : opts.GridLineSpacing(1) : opts.Size(1);
+        %     grid_y = 0 : opts.GridLineSpacing(2) : opts.Size(2);
+        %     if grid_x(end) ~= opts.Size(1)
+        %         grid_x(end+1) = opts.Size(1);
+        %     end
+        %     if grid_y(end) ~= opts.Size(2)
+        %         grid_y(end+1) = opts.Size(2);
+        %     end
+        %     grid_x = grid_x + opts.PlaneOffset(1);
+        %     grid_y = grid_y + opts.PlaneOffset(2);
+        % 
+        %     [xdata, ydata] = meshgrid(grid_x, grid_y);
+        % 
+        %     % always create the plane at the origin at +Z
+        %     this.h_surface = surface(...
+        %         'XData', xdata, ...
+        %         'YData', ydata, ...
+        %         'ZData', zeros(size(xdata)), ...
+        %         'FaceColor', 0.6*[1 1 1], ...
+        %         'FaceAlpha', 0.2, ...
+        %         'EdgeColor', 0.2*[1 1 1], ...
+        %         'EdgeAlpha', 0.2, ...
+        %         'LineStyle', '-', ...
+        %         'Clipping', 'off', ...
+        %         'HitTest','off',...
+        %         'PickableParts','none',...
+        %         'Parent', this.h_plot_group);
+        % end
 
         function [p, dist] = intersect_plane(this, observer, ray, opts)
             arguments
