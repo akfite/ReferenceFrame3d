@@ -12,37 +12,26 @@ function demo_ReferenceFrame3d()
     rotate3d(ax, 'on');
     on_exit = onCleanup(@() delete(hfig));
 
-    % draw the world (fixed) coordinate system first
+    % create all our coordinate systems up-front (relative to one another)
     world = ReferenceFrame3d(eye(3));
-    world.plot('Parent', ax, ...
-        'LineLength', 3);
-
-    % the base frame will rotate with respect to the world
     base = ReferenceFrame3d(eye(3));
-    base.plot('Parent', world.hgtransform(), ...
-        'LineLength', 3);
-    
-    % the first arm is fixed to the base and rotates with it
-    pos = [10 0 0];
-    first_arm = ReferenceFrame3d(eye(3), pos); % track with a RF3d object
-    first_arm.plot(...
-        'Parent', base.hgtransform(), ...
-        'LineLength', 1);
+    first_arm = ReferenceFrame3d(eye(3), [10 0 0]); % fixed to the base
+    second_arm = ReferenceFrame3d(eye(3), [2 0 3]); % in 1st arm's frame
+    second_arm.rotate_eulerd(0, 15, 30);
+
+    % plot all the objects in the axis
+    frames = [world, base, first_arm, second_arm];
+    frames.plot('Parent', ax, 'LineLength', 3);
+    frames(end).draw_plane('Slice','xy');
+
     % draw the first arm (attached to the base, so we use the base's coordinate frame)
-    line([0 pos(1)], [0 pos(2)], [0 pos(3)], ...
+    line([0 first_arm.t(1)], [0 first_arm.t(2)], [0 first_arm.t(3)], ...
         'Parent', base.hgtransform(), ...
         'LineWidth', 2, ...
         'Color', 'k', ...
         'Marker', '.', ...
         'Tag', 'FIRST_ARM');
-
-    % the second arm is mounted to the first (so we define its position relative to
-    % the first arm, i.e. use the first arm's frame)
-    pos = [2 0 3];
-    second_arm = Plane(ReferenceFrame3d(eye(3), pos)); % in 1st arm's frame
-    second_arm.rotate_eulerd(0, 15, 30);
-    second_arm.plot('Parent', first_arm.hgtransform());
-    line([0 pos(1)], [0 pos(2)], [0 pos(3)], ...
+    line([0 second_arm.t(1)], [0 second_arm.t(2)], [0 second_arm.t(3)], ...
         'Parent', first_arm.hgtransform(), ...
         'LineWidth', 2, ...
         'Color', 'k', ...

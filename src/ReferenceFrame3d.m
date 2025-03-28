@@ -1,6 +1,5 @@
 classdef ReferenceFrame3d < matlab.mixin.Copyable ...
-        & matlab.mixin.CustomDisplay ...
-        & matlab.mixin.Heterogeneous
+        & matlab.mixin.CustomDisplay
     
     properties
         T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
@@ -42,6 +41,35 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     end
 
     methods (Static)
+        function this = from_point_normal(point, normal)
+            %FROM_POINT_NORMAL Creates a new frame to represent a plane (as x-y basis)
+            arguments
+                point(1,3) double {mustBeReal, mustBeFinite}
+                normal(1,3) double {mustBeReal, mustBeFinite}
+            end
+
+            % pick any arbitrary orthogonal x and y vectors
+            z_basis = normal / norm(normal);
+            
+            if abs(z_basis(1)) < 0.9  % if z is not too close to x-axis
+                whatever = [1; 0; 0];
+            else  % if z is close to x-axis, use y-axis instead
+                whatever = [0; 1; 0];
+            end
+            
+            x_basis = cross(whatever, z_basis);
+            x_basis = x_basis / norm(x_basis);
+            
+            y_basis = cross(z_basis, x_basis);
+            y_basis = y_basis / norm(y_basis);
+
+            % create the transform
+            T = [x_basis; y_basis; z_basis]';
+            T(4,4) = 1;
+            T(1:3,4) = point;
+            this = ReferenceFrame3d(T);
+        end
+
         function validate_transform(T)
             %VALIDATE Check that the transform makes sense as configured.
             validateattributes(T, ...
@@ -313,21 +341,16 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             sz = opts.LineLength;
 
             for i = 1:numel(objs)
-                tform = objs(i).h_transform;
-
-                if ~isempty(objs(i).h_plot_group) ...
-                        && isvalid(objs(i).h_plot_group) ...
-                        && isequal(objs(i).h_plot_group.Parent, tform)
-                    continue % data is already plotted
-                end
+                % plot each coordinate system relative to its base frame
+                parent = objs(i).h_transform;
                 
-                ax = ancestor(tform, 'axes');
+                ax = ancestor(parent, 'axes');
                 assert(~isempty(ax), ...
                     'The ancestor axis to the hgtransform is empty.');
     
                 % we may wish to plot other things to the reference frame transform,
                 % so let's organize the basis vector data under its own group
-                objs(i).h_plot_group = hggroup('Parent', tform, 'Tag', 'RF3D_BASIS_GROUP');
+                objs(i).h_plot_group = hggroup('Parent', parent, 'Tag', 'RF3D_BASIS_GROUP');
     
                 if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
                     % interleave NaNs to plot all basis vectors as a single object
@@ -408,6 +431,73 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
+        function h = draw_plane(obj, opts)
+            arguments
+                obj(1,1) ReferenceFrame3d
+                opts.Slice(1,2) char = 'xy'
+                opts.Size(1,2) double {mustBeReal, mustBeFinite} = [4 4] % [x y]
+                opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
+                opts.Datum(1,2) double = [nan nan] % [x y]
+            end
+
+            % override default options
+            inan = isnan(opts.GridLineSpacing);
+            opts.GridLineSpacing(inan) = opts.Size(inan); % no grid lines by default
+            opts.GridLineSpacing = min([opts.GridLineSpacing; opts.Size], [], 1);
+            inan = isnan(opts.Datum);
+            opts.Datum(inan) = -opts.Size(inan) ./ 2; % center the plane by default
+
+            grid_x = 0 : opts.GridLineSpacing(1) : opts.Size(1);
+            grid_y = 0 : opts.GridLineSpacing(2) : opts.Size(2);
+            if grid_x(end) ~= opts.Size(1)
+                grid_x(end+1) = opts.Size(1);
+            end
+            if grid_y(end) ~= opts.Size(2)
+                grid_y(end+1) = opts.Size(2);
+            end
+            grid_x = grid_x + opts.Datum(1);
+            grid_y = grid_y + opts.Datum(2);
+
+            [xdata, ydata] = meshgrid(grid_x, grid_y);
+            zdata = zeros(size(xdata));
+
+            % now transform to the correct slice
+            switch opts.Slice
+                case 'xy'
+                    a = [1 0 0]'; b = [0 1 0]';
+                case 'xz'
+                    a = [1 0 0]'; b = [0 0 1]';
+                case 'yz'
+                    a = [0 1 0]'; b = [0 0 1]';
+                case 'yx'
+                    a = [0 1 0]'; b = [1 0 0]';
+                case 'zx'
+                    a = [0 0 1]'; b = [1 0 0]';
+                case 'zy'
+                    a = [0 0 1]'; b = [0 1 0]';
+                otherwise
+                    validatestring(opts.Slice,{'xy','xz','yz','yx','zx','zy'});
+            end
+            plane = ReferenceFrame3d([a b cross(a, b)], [0 0 0]); % rel. to obj
+            plane.plot('Parent', obj.h_transform, 'Colors', 'm');
+
+            % always create the plane at the origin at +Z
+            h = surface(...
+                'XData', xdata, ...
+                'YData', ydata, ...
+                'ZData', zdata, ...
+                'FaceColor', 0.6*[1 1 1], ...
+                'FaceAlpha', 0.2, ...
+                'EdgeColor', 0.2*[1 1 1], ...
+                'EdgeAlpha', 0.2, ...
+                'LineStyle', '-', ...
+                'Clipping', 'off', ...
+                'HitTest','off',...
+                'PickableParts','none',...
+                'Tag', sprintf('%s_PLANE', upper(opts.Slice)), ...
+                'Parent', plane.hgtransform(obj.h_transform));
+        end
+
         function tform = hgtransform(objs, parent)
             %HGTRANSFORM Get the graphics transform paired to this object.
 
@@ -451,19 +541,21 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                     continue
                 end
                 delete(objs(i).h_transform);
-                objs(i).h_transform = hgtransform('Parent', parent);
+                objs(i).h_transform = hgtransform('Parent', parent, 'Matrix', objs(i).T);
                 parent = objs(i).h_transform;
             end
 
             tform = objs(end).h_transform;
         end
 
-        function update_hgtransform(this)
+        function update_hgtransform(objs)
             %UPDATE_TRANSFORM Update the graphics transform to match the object state.
-            if isempty(this.h_transform) || ~isvalid(this.h_transform)
-                return
+            for i = 1:numel(objs)
+                if isempty(objs(i).h_transform) || ~isvalid(objs(i).h_transform)
+                    continue
+                end
+                objs(i).h_transform.Matrix = objs(i).T;
             end
-            this.h_transform.Matrix = this.T;
         end
 
         function clear(this)
