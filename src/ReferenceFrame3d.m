@@ -98,6 +98,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         function varargout = local2base(this, varargin)
             %LOCAL2BASE Transform a vector from the local to base frame (rot + translate)
 
+            nargoutchk(0,3);
+
             switch nargin
                 case 2 % obj, [x y z]
                     local_vec = varargin{1};
@@ -137,6 +139,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
         function varargout = base2local(this, varargin)
             %BASE2LOCAL Transform a vector from the base to local frame (rot + translate)
+
+            nargoutchk(0,3);
 
             switch nargin
                 case 2 % obj, [x y z]
