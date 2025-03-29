@@ -24,25 +24,41 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         function this = ReferenceFrame3d(matrix, origin)
             %REFERENCEFRAME3D Constructor.
             arguments
-                matrix double = eye(3)
+                matrix = eye(4)
                 origin(1,3) double = [0 0 0]
             end
             this.setup(matrix, origin);
         end
 
-        function this = setup(this, matrix, origin)
+        function this = setup(this, rot, origin)
             %SETUP Configure an existing object with a 3x3 DCM & origin vector.
             arguments
                 this(1,1) ReferenceFrame3d
-                matrix double
+                rot
                 origin(1,3) double = [0 0 0]
             end
 
-            if isequal(size(matrix,[1 2]), [4 4])
-                T = matrix;
-            else
-                matrix(4,4) = 1;
-                T = matrix * makehgtform('translate', origin);
+            sz = size(rot);
+
+            if isscalar(rot)
+                switch string(class(rot))
+                    case "quaternion"
+                        T = rotmat(quat,"frame");
+                        T(4,4) = 1;
+                    case "se3"
+                        T = tform(rot);
+                    case "so3"
+                        T = tform(rot);
+                        T(1:3,4) = origin;
+                    otherwise
+                        error('Unsupported scalar type %s', class(rot));
+                end
+            elseif isequal(sz, [4 4]) % homogeneous transform (4x4 matrix)
+                T = rot;
+            elseif isequal(sz, [3 3]) % DCM + origin
+                rot(4,4) = 1;
+                rot(1:3,4) = origin;
+                T = rot;
             end
 
             this.T = T;
@@ -102,7 +118,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
     end
 
-    %% Math & utility
+    %% Math & Utility
     methods (Sealed)
         function varargout = local2base(this, varargin)
             %LOCAL2BASE Transform a vector from the local to base frame (translate & rot)
@@ -126,7 +142,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             if isscalar(this)
                 T = this.T;
             else
-                T = as_matrix(compose(this)); % combine rotations
+                T = compose(this).as_transform(); % combine rotations
             end
 
             % create a dimension deleter (delete 4th dim of output)
@@ -167,9 +183,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
 
             if isscalar(this)
-                T = as_matrix(inv(this));
+                T = inv(this).as_transform();
             else
-                T = as_matrix(inv(compose(this))); % combine rotations
+                T = inv(compose(this)).as_transform(); % combine rotations
             end
 
             % create a dimension deleter (delete 4th dim of output)
@@ -200,6 +216,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function this = reposition(this, new_pos)
+            %REPOSITION Set a new origin.
             arguments
                 this(1,1) ReferenceFrame3d
                 new_pos(3,1) double {mustBeReal, mustBeFinite}
@@ -208,6 +225,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
         
         function this = rotate(this, dcm)
+            %ROTATE Rotate with a 3x3 Direction Cosine Matrix (DCM).
             arguments
                 this(1,1) ReferenceFrame3d
                 dcm(3,3) double
@@ -218,6 +236,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function this = rotate_euler(this, roll, pitch, yaw)
+            %ROTATE_EULER Rotate with an euler sequence (zyx)
             cr = cos(roll);
             sr = sin(roll);
             cp = cos(pitch);
@@ -235,10 +254,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function this = rotate_eulerd(this, roll, pitch, yaw)
+            %ROTATE_EULERD Rotate with an euler sequence (zyx), in degrees
             this.rotate_euler(roll * pi/180, pitch * pi/180, yaw * pi/180);
         end
 
         function new = compose(this)
+            %COMPOSE Multiply through a sequence of transforms T = T1*T2*T3...
             arguments (Repeating)
                 this(:,1) ReferenceFrame3d
             end
@@ -251,45 +272,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function this = inv(this)
+            %INV Inverse of the transform.
             R_inv = this.R'; % transpose = inverse for a DCM by definition
             t_inv = -R_inv * this.t;
             this.T = [R_inv, t_inv; 0 0 0 1];
-        end
-
-        function T = as_matrix(this)
-            arguments
-                this(1,1) ReferenceFrame3d
-            end
-            T = this.T;
-        end
-
-        function R = as_dcm(this)
-            arguments
-                this(1,1) ReferenceFrame3d
-            end
-            R = this.R;
-        end
-
-        function q = as_quaternion(this)
-            try
-            catch me
-                if strcmp(me.identifier, 'MATLAB:ErrorRecovery:UnlicensedFunction')
-                end
-            end
-        end
-
-        function [roll, pitch, yaw] = as_euler(this)
-            dcm = this.R;
-            roll = atan2(dcm(2,3,:), dcm(3,3,:));
-            pitch = asin(-dcm(1,3,:));
-            yaw = atan2(dcm(1,2,:), dcm(1,1,:));
-        end
-
-        function [roll, pitch, yaw] = as_eulerd(this)
-            [roll, pitch, yaw] = as_euler(this);
-            roll = roll * 180/pi;
-            pitch = pitch * 180/pi;
-            yaw = yaw * 180/pi;
         end
     end
 
@@ -344,6 +330,62 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
     end
 
+    %% Numeric Representations
+    methods
+        function T = as_transform(this)
+            %AS_TRANSFORM Express as a 4x4 homogeneous transform.
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
+            T = this.T;
+        end
+
+        function R = as_dcm(this)
+            %AS_DCM Express as a 3x3 pure rotation matrix.
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
+            R = this.R;
+        end
+
+        function [roll, pitch, yaw] = as_euler(this)
+            %AS_EULER Express as euler angles (zyx sequence)
+            dcm = this.R;
+            roll = atan2(dcm(2,3,:), dcm(3,3,:));
+            pitch = asin(-dcm(1,3,:));
+            yaw = atan2(dcm(1,2,:), dcm(1,1,:));
+        end
+
+        function [roll, pitch, yaw] = as_eulerd(this)
+            %AS_EULERD Express as euler angles (zyx sequence), in degrees
+            [roll, pitch, yaw] = as_euler(this);
+            roll = roll * 180/pi;
+            pitch = pitch * 180/pi;
+            yaw = yaw * 180/pi;
+        end
+    end
+
+    %% MATLAB Toolbox Interoperability
+    %
+    %   These methods are subject to the availability of toolboxes on your system.
+
+    methods
+        function tform = se3(this)
+            %SE3 Convert to an SE3 object.
+            tform = se3(cat(3, this.T));
+        end
+
+        function rot = so3(this)
+            %SO3 Convert to an SO3 object.
+            rot = so3(cat(3, this.R));
+        end
+
+        function q = quaternion(this)
+            %QUATERNION Convert to a quaternion object.
+            q = quaternion(cat(3, this.R));
+        end
+    end
+
     %% Overloads
     methods
         function new = mtimes(this, other)
@@ -352,10 +394,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function this = ctranspose(this)
-            transpose(this); % complex types are not supported (' == .')
+            %CTRANSPOSE Complex conjugate transpose (rotation component only).
+            transpose(this);
         end
 
         function this = transpose(this)
+            %TRANSPOSE Transpose (rotation component only).
             this.T(1:3,1:3) = this.T(1:3,1:3).';
         end
     end
@@ -363,18 +407,16 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     %% Graphics
     methods (Sealed)
         function show(this)
-            %SHOW Draw everything in a new, dedicated figure
-
+            %SHOW Plot everything in a new, dedicated figure.
             hfig = figure;
             ax = axes('parent', hfig);
             grid(ax, 'on');
             box(ax, 'on');
-
             this.plot('parent',ax);
         end
 
         function plot(objs, opts)
-            %PLOT Plot as a 3-d object.
+            %PLOT Plot the frame's basis vectors in 3d.
             arguments
                 objs(:,1) ReferenceFrame3d
                 opts.Parent = []
@@ -382,7 +424,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.LineWidth(1,3) double = 1
                 opts.LineStyle(1,:) char = '-'
                 opts.LineLength(1,3) double = 1
-                opts.EnableArrowheads(1,3) matlab.lang.OnOffSwitchState = 1
+                opts.EnableArrowhead(1,3) matlab.lang.OnOffSwitchState = 1
             end
 
             % create the transforms (if they don't already exist)
@@ -406,30 +448,30 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                     xdata = [0 sz(1) NaN; 0 0 NaN; 0 0 NaN]';
                     ydata = [0 0 NaN; 0 sz(2) NaN; 0 0 NaN]';
                     zdata = [0 0 NaN; 0 0 NaN; 0 sz(3) NaN]';
-                    line(objs(i).h_plot_group, ...
-                        xdata(:), ydata(:), zdata(:), ...
+                    line(xdata(:), ydata(:), zdata(:), ...
+                        'Parent', objs(i).h_plot_group, ...
                         'Color', opts.Colors(1), ...
                         'LineWidth', opts.LineWidth(1), ...
                         'LineStyle', opts.LineStyle, ...
                         'Clipping', 'off', ...
                         'Tag', 'RF3D_BASIS_VECTORS');
                 else
-                    line(objs(i).h_plot_group, ...
-                        [0 sz(1)], [0 0], [0 0], ...
+                    line([0 sz(1)], [0 0], [0 0], ...
+                        'Parent', objs(i).h_plot_group, ...
                         'Color', opts.Colors(1), ...
                         'LineWidth', opts.LineWidth(1), ...
                         'LineStyle', opts.LineStyle, ...
                         'Clipping', 'off', ...
                         'Tag', 'RF3D_BASIS_VECTORS');
-                    line(objs(i).h_plot_group, ....
-                        [0 0], [0 sz(2)], [0 0], ...
+                    line([0 0], [0 sz(2)], [0 0], ...
+                        'Parent', objs(i).h_plot_group, ...
                         'Color', opts.Colors(2), ...
                         'LineWidth', opts.LineWidth(2), ...
                         'LineStyle', opts.LineStyle, ...
                         'Clipping', 'off', ...
                         'Tag', 'RF3D_BASIS_VECTORS');
-                    line(objs(i).h_plot_group, ...
-                        [0 0], [0 0], [0 sz(3)], ...
+                    line([0 0], [0 0], [0 sz(3)], ...
+                        'Parent', objs(i).h_plot_group, ...
                         'Color', opts.Colors(3), ...
                         'LineWidth', opts.LineWidth(3), ...
                         'LineStyle', opts.LineStyle, ...
@@ -437,12 +479,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                         'Tag', 'RF3D_BASIS_VECTORS');
                 end
                 for j = 1:3
-                    if opts.EnableArrowheads(j)
+                    if opts.EnableArrowhead(j)
                         plot_arrowhead(objs(i).h_plot_group, sz(j), opts.Colors(j), j);
                     end
                 end
-                line(objs(i).h_plot_group, ...
-                    'XData', 0, 'YData', 0, 'ZData', 0, ...
+                line(0, 0, 0, ...
+                    'Parent', objs(i).h_plot_group, ...
                     'Color', 'k', ...
                     'Marker', '.', ...
                     'MarkerSize', 12, ...
@@ -451,21 +493,22 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
 
             function plot_arrowhead(parent, base_length, color, basis)
+                %PLOT_ARROWHEAD Local function to plot a colored cone.
                 m = 20; n = 2;
                 theta = linspace(0, 2*pi, m);
                 R = linspace(0, 0.2*base_length, n);
                 [T, R] = meshgrid(theta, R);
     
                 switch basis
-                    case 1
+                    case 1 % x
                         x = base_length - R;
                         y = R.*.2.*sin(T);
                         z = R.*.2.*cos(T);
-                    case 2
+                    case 2 % y
                         y = base_length - R;
                         z = R.*.2.*sin(T);
                         x = R.*.2.*cos(T);
-                    case 3
+                    case 3 % z
                         z = base_length - R;
                         x = R.*.2.*sin(T);
                         y = R.*.2.*cos(T);
@@ -550,8 +593,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 'EdgeAlpha', opts.EdgeAlpha, ...
                 'LineStyle', opts.LineStyle, ...
                 'Clipping', opts.Clipping, ...
-                'HitTest','off',...
-                'PickableParts','none',...
+                'HitTest','off', ...
+                'PickableParts','none', ...
                 'Tag', sprintf('%s_PLANE', upper(opts.Slice)), ...
                 'Parent', obj.h_transform);
         end
