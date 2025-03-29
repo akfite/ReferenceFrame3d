@@ -4,12 +4,14 @@ function demo_ReferenceFrame3d()
     ax = axes('parent', hfig);
     hold(ax,'on');
     grid on
+    view(ax, 45, 20)
+    axis(ax, 'vis3d');
+    axis(ax, 'equal');
+    rotate3d(ax, 'on');
+    axis(ax, 'off');
     xlim(ax, [-15 15]);
     ylim(ax, [-15 15]);
     zlim(ax, [-10 10]);
-    view(ax, 45,45)
-    axis(ax, 'vis3d');
-    rotate3d(ax, 'on');
     on_exit = onCleanup(@() delete(hfig));
 
     % create all our coordinate systems up-front (relative to one another)
@@ -22,10 +24,12 @@ function demo_ReferenceFrame3d()
     % plot all the objects in the axis
     frames = [world, base, first_arm, second_arm];
     frames.plot('Parent', ax, 'LineLength', 3);
-    frames(end).draw_plane('Slice','xy');
-    frames(end).draw_plane('Slice','yz');
 
-    % draw the first arm (attached to the base, so we use the base's coordinate frame)
+    % if you want to plot without the basis vectors, call hgtransform()
+    % instead of plot() to only establish the hgtransform objects, e.g.:
+    % frames.hgtransform(ax);
+
+    % add our own plots to supplement the basis vectors already drawn
     line([0 first_arm.t(1)], [0 first_arm.t(2)], [0 first_arm.t(3)], ...
         'Parent', base.hgtransform(), ...
         'LineWidth', 2, ...
@@ -39,12 +43,19 @@ function demo_ReferenceFrame3d()
         'Marker', '.', ...
         'Tag', 'SECOND_ARM');
 
+    world.draw_plane(...
+        'Clipping','on','Size',[50 50],'GridLineSpacing',[5 5],'FaceAlpha',0.05);
+    base.draw_plane(...
+        'Clipping','on','Size',[50 50],'GridLineSpacing',[5 5],'FaceAlpha',0.05);
+    second_arm.draw_plane('FaceColor','r');
+
     clock = tic;
     time = toc(clock);
 
     warnstate = warning('off', 'MATLAB:hg:DiceyTransformMatrix');
     on_exit(end+1) = onCleanup(@() warning(warnstate));
 
+    %% animation loop
     while true
         if ~isvalid(hfig)
             break
@@ -66,21 +77,23 @@ function demo_ReferenceFrame3d()
         % will automatically place it in the correct world frame location
         xc = -cos(10 * time);
         yc = sin(10 * time);
-        h = plot3(second_arm.hgtransform(), xc, yc, 0, 'k.');
+        h = plot3(second_arm.hgtransform(), ... % note the parent object
+            xc, yc, 0, 'ko', 'MarkerSize', 6);
 
-        % we'll also translate the coordinate out of the local frame and into the
-        % world frame to confirm that the transform works correctly
+        % now, just for example, let's plot that same rotating point but in the
+        % world frame, using methods of ReferenceFrame3d
 
         % concatenate to form a transformation sequence
         frames = [base, first_arm, second_arm]; 
 
-        % transform from local of frame(end) to base of frame(1)
-        base_pos = frames.local2base([xc yc 0]);
+        % transform from local of frames(end) to base of frames(1)
+        [wx, wy, wz] = frames.local2base(xc, yc, 0);
+        % wxyz = frames.local2base([xc, yc, 0]); % could also call with Nx3 input/output
 
         % plot directly to the axis now (world frame) to prove equivalence w.r.t.
         % plotting in the local frame
-        h(2) = plot3(ax, ... 
-            base_pos(1), base_pos(2), base_pos(3), 'ro');
+        h(2) = plot3(ax, ... % note the parent object
+            wx, wy, wz, 'ro', 'MarkerSize', 10);
 
         drawnow
         delete(h);
