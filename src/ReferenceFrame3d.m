@@ -99,14 +99,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             %LOCAL2BASE Transform a vector from the local to base frame (rot + translate)
 
             switch nargin
-                case 2 % obj + [x y z]
+                case 2 % obj, [x y z]
                     local_vec = varargin{1};
                     orig_sz = [size(local_vec,1) 1];
-                case 4 % obj + x, y, z
+                case 4 % obj, x, y, z
                     orig_sz = size(varargin{1});
                     local_vec = [varargin{1}(:), varargin{2}(:), varargin{3}(:)];
                 otherwise
-                    error('')
+                    error('Expected local vector as an Nx3 or three Nx1 arguments.');
             end
 
             if isscalar(this)
@@ -135,11 +135,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function local_vec = base2local(this, base_vec)
+        function varargout = base2local(this, varargin)
             %BASE2LOCAL Transform a vector from the base to local frame (rot + translate)
-            arguments
-                this(:,1) ReferenceFrame3d
-                base_vec(:,3)
+
+            switch nargin
+                case 2 % obj, [x y z]
+                    base_vec = varargin{1};
+                    orig_sz = [size(base_vec,1) 1];
+                case 4 % obj, x, y, z
+                    orig_sz = size(varargin{1});
+                    base_vec = [varargin{1}(:), varargin{2}(:), varargin{3}(:)];
+                otherwise
+                    error('Expected base vector as an Nx3 or three Nx1 arguments.');
             end
 
             if isscalar(this)
@@ -158,6 +165,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 ];
 
             local_vec = (H * T * base_vec')'; % transform
+
+            if nargout <= 1
+                varargout{1} = local_vec;
+            else
+                for i = nargout:-1:1
+                    varargout{i} = reshape(local_vec(:,i), orig_sz);
+                end
+            end
         end
 
         function this = translate(this, dxyz)
