@@ -1,21 +1,15 @@
-# ReferenceFrame3d - MATLAB Class for 3D Transformations
+# ReferenceFrame3d
 
 [![View on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/XXXXXX-referenceframe3d) <!-- TODO: Replace XXXXXX with File Exchange ID if submitted -->
 <!-- Add other badges as needed, e.g., License, Version -->
 
-A comprehensive and easy-to-use MATLAB class for representing and manipulating 3D reference frames (pose) using 4x4 homogeneous transformation matrices. Designed for robotics, computer graphics, vision, and related fields.
+A MATLAB class to manage complex relationships between reference frames, particularly when plotting 3D scenes.  Intended for tracking, robotics, computer vision, and related fields.
 
 ## Overview
 
 The `ReferenceFrame3d` class encapsulates a 3D rigid body transformation, comprising both rotation and translation. A **vector** of `ReferenceFrame3d` objects represents a **transformation sequence** from the base frame of the first element to the local frame of the last element.  
 
-This class can also manage reference frames when plotting data.  It uses hierarchies of highly-efficient `hgtransform` objects internally to enable the user to plot data in local coordinates and have it automatically appear in the correct world position in the axes.
-
-Key features include intuitive methods for:
-
-*   Creating and manipulating transforms (rotation, translation, inversion, composition, etc)
-*   Transforming points/vectors between local and base coordinate systems, including through sequences of reference frames.
-*   Enables plotting of complex 3D scenes by internally managing hierarchies of `hgtransform` objects.
+This class is particularly useful for managing reference frames when plotting data.  It uses a hierarchy of efficient `hgtransform` objects to enable the user to plot data in local coordinates and have it automatically appear in the correct world position in the axes.
 
 ## Examples
 
@@ -286,28 +280,33 @@ disp('Original frame origin:'); disp(frame_orig.t');
 disp('Copied frame origin:'); disp(frame_copy.t');
 ```
 
-## API Summary
+## Properties
 
-### Key Properties
-
-#### Read/Write
+### Read/Write
 *   `T` (4x4 double): The homogeneous transformation matrix.
     * public access
     * transform is validated before setting
     * updates hgtransform object when set (if one exists)
-    * recommend updating via `setup(rot, origin)` or other methods for rotation, translation, etc
+    * recommend setting this property via method `setup(rot, origin)` or other methods for rotation, translation, etc
 
-#### Read-Only
+### Read-Only
 *   `R` (3x3 double, Dependent): Rotation submatrix.
 *   `t` (3x1 double, Dependent): Translation vector (origin).
 *   `x`, `y`, `z` (3x1 double, Dependent): Basis vectors.
 
-### Construction & Setup
+## Methods
+### Construction
 
-*   `ReferenceFrame3d(matrix, origin)`: Constructor (accepts 4x4 T, 3x3 R, `quaternion`, `se3`, `so3`).
+*   `ReferenceFrame3d()`: Default constructor (`eye(4)`).
+*   `ReferenceFrame3d(rot)`: Rotation-only constructor.
+*   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
 *   `setup(rot, origin)`: Configure an existing object.
-*   `ReferenceFrame3d.from_point_normal(point, normal)`: Static constructor for plane frames.
-*   `ReferenceFrame3d.from_coplanar_vectors(...)`: (TODO)
+
+> `rot` argument can be 4x4 T, 3x3 R, `quaternion`, `se3`, or `so3`.
+
+#### Static Constructors (Utility)
+*   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
+*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2)`: Create a frame to represent a plane using two coplanar vectors.
 
 ### Transformations
 
