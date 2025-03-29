@@ -42,7 +42,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     methods (Static)
         function this = from_point_normal(point, normal)
-            %FROM_POINT_NORMAL Creates a new frame to represent a plane (as x-y basis)
+            %FROM_POINT_NORMAL Creates a new frame to represent a plane.
             arguments
                 point(1,3) double {mustBeReal, mustBeFinite}
                 normal(1,3) double {mustBeReal, mustBeFinite}
@@ -70,6 +70,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             this = ReferenceFrame3d(T);
         end
 
+        function this = from_coplanar_vectors(x_basis, y_basis, origin)
+            %TODO
+        end
+
         function validate_transform(T)
             %VALIDATE Check that the transform makes sense as configured.
             validateattributes(T, ...
@@ -91,11 +95,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Math & utility
     methods (Sealed)
-        function base_vec = local2base(this, local_vec)
+        function varargout = local2base(this, varargin)
             %LOCAL2BASE Transform a vector from the local to base frame (rot + translate)
-            arguments
-                this(:,1) ReferenceFrame3d
-                local_vec(:,3)
+
+            switch nargin
+                case 2 % obj + [x y z]
+                    local_vec = varargin{1};
+                    orig_sz = [size(local_vec,1) 1];
+                case 4 % obj + x, y, z
+                    orig_sz = size(varargin{1});
+                    local_vec = [varargin{1}(:), varargin{2}(:), varargin{3}(:)];
+                otherwise
+                    error('')
             end
 
             if isscalar(this)
@@ -114,6 +125,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 ];
 
             base_vec = (H * T * local_vec')'; % transform
+
+            if nargout <= 1
+                varargout{1} = base_vec;
+            else
+                for i = nargout:-1:1
+                    varargout{i} = reshape(base_vec(:,i), orig_sz);
+                end
+            end
         end
 
         function local_vec = base2local(this, base_vec)
@@ -432,6 +451,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function h = draw_plane(obj, opts)
+            %DRAW_PLANE Draw a plane in the axis.
             arguments
                 obj(1,1) ReferenceFrame3d
                 opts.Slice(1,2) char = 'xy'
@@ -461,7 +481,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             [xdata, ydata] = meshgrid(grid_x, grid_y);
             zdata = zeros(size(xdata));
 
-            % now transform to the correct slice
+            % our plane is defined in the x-y plane, but user may have requested a
+            % different slice.  so we'll define a new frame co-located with the
+            % current frame that moves the basis vectors around as required
             switch opts.Slice
                 case 'xy'
                     a = [1 0 0]'; b = [0 1 0]';
@@ -478,10 +500,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 otherwise
                     validatestring(opts.Slice,{'xy','xz','yz','yx','zx','zy'});
             end
-            plane = ReferenceFrame3d([a b cross(a, b)], [0 0 0]); % rel. to obj
-            plane.plot('Parent', obj.h_transform, 'Colors', 'm');
+            
+            plane = ReferenceFrame3d([a b cross(a, b)], [0 0 0]);
+            [xdata, ydata, zdata] = plane.local2base(xdata, ydata, zdata);
 
-            % always create the plane at the origin at +Z
             h = surface(...
                 'XData', xdata, ...
                 'YData', ydata, ...
@@ -495,7 +517,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 'HitTest','off',...
                 'PickableParts','none',...
                 'Tag', sprintf('%s_PLANE', upper(opts.Slice)), ...
-                'Parent', plane.hgtransform(obj.h_transform));
+                'Parent', obj.h_transform);
         end
 
         function tform = hgtransform(objs, parent)

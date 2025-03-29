@@ -23,6 +23,7 @@ function demo_ReferenceFrame3d()
     frames = [world, base, first_arm, second_arm];
     frames.plot('Parent', ax, 'LineLength', 3);
     frames(end).draw_plane('Slice','xy');
+    frames(end).draw_plane('Slice','yz');
 
     % draw the first arm (attached to the base, so we use the base's coordinate frame)
     line([0 first_arm.t(1)], [0 first_arm.t(2)], [0 first_arm.t(3)], ...
