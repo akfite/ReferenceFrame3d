@@ -22,11 +22,20 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     %% Construction
     methods
         function this = ReferenceFrame3d(matrix, origin)
-            if nargin == 0
-                return
+            %REFERENCEFRAME3D Constructor.
+            arguments
+                matrix double = eye(3)
+                origin(1,3) double = [0 0 0]
             end
-            if nargin < 2
-                origin = [0 0 0];
+            this.setup(matrix, origin);
+        end
+
+        function this = setup(this, matrix, origin)
+            %SETUP Configure an existing object with a 3x3 DCM & origin vector.
+            arguments
+                this(1,1) ReferenceFrame3d
+                matrix double
+                origin(1,3) double = [0 0 0]
             end
 
             if isequal(size(matrix,[1 2]), [4 4])
@@ -96,8 +105,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     %% Math & utility
     methods (Sealed)
         function varargout = local2base(this, varargin)
-            %LOCAL2BASE Transform a vector from the local to base frame (rot + translate)
-
+            %LOCAL2BASE Transform a vector from the local to base frame (translate & rot)
             nargoutchk(0,3);
 
             switch nargin
@@ -108,7 +116,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                     orig_sz = size(varargin{1});
                     local_vec = [varargin{1}(:), varargin{2}(:), varargin{3}(:)];
                 otherwise
-                    error('Expected local vector as an Nx3 or three Nx1 arguments.');
+                    error('Expected input vector as an Nx3 or three Nx1 arguments.');
+            end
+
+            if size(local_vec,2) == 3
+                local_vec(:,4) = 1; % to homogeneous coordinates
             end
 
             if isscalar(this)
@@ -117,8 +129,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 T = as_matrix(compose(this)); % combine rotations
             end
 
-            local_vec(:,4) = 1; % to homogeneous coordinates
-
             % create a dimension deleter (delete 4th dim of output)
             H = [
                 1 0 0 0
@@ -126,20 +136,19 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 0 0 1 0
                 ];
 
-            base_vec = (H * T * local_vec')'; % transform
+            base_vec = H * T * local_vec'; % was Nx4; now 3xN
 
             if nargout <= 1
-                varargout{1} = base_vec;
+                varargout{1} = base_vec'; % back to Nx3
             else
                 for i = nargout:-1:1
-                    varargout{i} = reshape(base_vec(:,i), orig_sz);
+                    varargout{i} = reshape(base_vec(i,:), orig_sz);
                 end
             end
         end
 
         function varargout = base2local(this, varargin)
-            %BASE2LOCAL Transform a vector from the base to local frame (rot + translate)
-
+            %BASE2LOCAL Transform a vector from the base to local frame (translate & rot)
             nargoutchk(0,3);
 
             switch nargin
@@ -150,7 +159,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                     orig_sz = size(varargin{1});
                     base_vec = [varargin{1}(:), varargin{2}(:), varargin{3}(:)];
                 otherwise
-                    error('Expected base vector as an Nx3 or three Nx1 arguments.');
+                    error('Expected input vector as an Nx3 or three Nx1 arguments.');
+            end
+
+            if size(base_vec,2) == 3
+                base_vec(:,4) = 1; % to homogeneous coordinates
             end
 
             if isscalar(this)
@@ -159,8 +172,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 T = as_matrix(inv(compose(this))); % combine rotations
             end
 
-            base_vec(:,4) = 1; % to homogeneous coordinates
-
             % create a dimension deleter (delete 4th dim of output)
             H = [
                 1 0 0 0
@@ -168,13 +179,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 0 0 1 0
                 ];
 
-            local_vec = (H * T * base_vec')'; % transform
+            local_vec = H * T * base_vec'; % was Nx4; now 3xN
 
             if nargout <= 1
-                varargout{1} = local_vec;
+                varargout{1} = local_vec'; % back to Nx3
             else
                 for i = nargout:-1:1
-                    varargout{i} = reshape(local_vec(:,i), orig_sz);
+                    varargout{i} = reshape(local_vec(i,:), orig_sz);
                 end
             end
         end
