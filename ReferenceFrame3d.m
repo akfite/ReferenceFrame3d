@@ -449,6 +449,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             box(ax, 'on');
             this.plot('parent',ax);
             hold(ax,'on');
+            view(ax,45,30);
         end
 
         function plot(objs, opts)

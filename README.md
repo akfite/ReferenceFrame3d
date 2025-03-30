@@ -13,259 +13,41 @@ The `ReferenceFrame3d` class encapsulates a 3D rigid body transformation, compri
 
 This class is particularly useful for managing reference frames when plotting data.  It uses a hierarchy of efficient `hgtransform` objects to enable the user to plot data in local coordinates and have it automatically appear in the correct world position in the axes.
 
-## Examples
+## Getting Started
 
-### TODO
-
-## Features
-
-*   **Representation:** Stores pose as a 4x4 homogeneous transformation matrix (`T`).
-*   **Convenience Accessors:** Easily get the 3x3 rotation matrix (`R`), 3x1 translation vector (`t`), and orthogonal basis vectors (`x`, `y`, `z`).
-*   **Flexible Construction:**
-    *   Default identity frame.
-    *   From a 4x4 `T` matrix.
-    *   From a 3x3 rotation matrix (`R` or DCM) and an origin vector (`t`).
-    *   From `quaternion`, `se3`, or `so3` objects (requires Navigation Toolbox™ / Robotics System Toolbox™).
-    *   Statically from a point and a normal vector to define a plane (`from_point_normal`).
-*   **Coordinate Transformations:** `local2base` and `base2local` methods for transforming vectors or sets of points (Nx3 arrays or separate x, y, z inputs).
-*   **Frame Manipulation:**
-    *   `translate`: Apply incremental translation.
-    *   `reposition`: Set absolute position (origin).
-    *   `rotate`: Apply incremental rotation using a 3x3 DCM.
-    *   `rotate_euler` / `rotate_eulerd`: Apply incremental ZYX Euler angle rotation (radians/degrees).
-*   **Composition & Inverse:**
-    *   `compose`: Chain multiple `ReferenceFrame3d` objects (`T_total = T1 * T2 * ...`).
-    *   `mtimes` (`*`): Overloaded multiplication for intuitive composition (`frame_total = frame1 * frame2`).
-    *   `inv`: Compute the inverse transformation.
-*   **Numeric Conversions:**
-    *   `as_transform()`: Get the 4x4 `T` matrix.
-    *   `as_dcm()`: Get the 3x3 `R` matrix.
-    *   `as_euler()` / `as_eulerd()`: Get ZYX Euler angles (radians/degrees).
-*   **Toolbox Interoperability:**
-    *   `se3()`, `so3()`, `quaternion()`: Convert to corresponding objects (requires Navigation Toolbox™ / Robotics System Toolbox™).
-*   **Visualization:**
-    *   `plot()`: Plot the frame's origin and basis vectors in a given axes. Highly customizable (colors, line styles, lengths, arrowheads).
-    *   `show()`: Convenience method to plot in a new figure.
-    *   `draw_plane()`: Draw a configurable planar surface aligned with two of the frame's basis vectors.
-    *   `hgtransform()`: Creates/retrieves the underlying `hgtransform` object for efficient hierarchical plotting and updates. Graphics automatically update when `T` is modified.
-    *   `clear()`: Deletes associated graphics objects.
-*   **Object Handling:**
-    *   Supports deep copying using the `copy()` method, which also copies graphics handles.
-*   **Validation:** Includes internal checks (`validate_transform`) to ensure the rotation part of `T` remains valid (orthogonal, det(R) = 1).
-
-## Requirements
-
-*   MATLAB R2021a or later (uses `arguments` block syntax). Earlier versions might work with modifications.
-*   **Optional:** Navigation Toolbox™ or Robotics System Toolbox™ for `se3`, `so3`, and `quaternion` conversion methods.
-
-## Installation
-
-Add the folder containing `ReferenceFrame3d.m` to your MATLAB path.
-
-## Usage Examples
-
-### 1. Creating Frames
+### Create and plot a reference frame
 
 ```matlab
-% Default identity frame (origin at [0,0,0], no rotation)
-frame0 = ReferenceFrame3d();
-
-% From a 4x4 homogeneous transform matrix
-T = [0 1 0 5;  % Rotation: 90 deg around Z, Translation: [5; -2; 1]
-    -1 0 0 -2;
-     0 0 1 1;
-     0 0 0 1];
-frame1 = ReferenceFrame3d(T);
-
-% From a 3x3 Rotation Matrix (DCM) and an origin vector
-R = eye(3);
-origin = [1 2 3];
-frame2 = ReferenceFrame3d(R, origin);
-
-% Update an existing frame
-frame3 = ReferenceFrame3d();
-frame3.setup(R, origin); % Same as frame2
-frame3 = ReferenceFrame3d();
-frame3.setup(frame2); % Same as frame2
-
-% From a point and normal vector (creates a frame representing a plane)
-pt = [1 1 1];
-normal = [0 0 1];
-plane_frame = ReferenceFrame3d.from_point_normal(pt, normal);
-
-% --- Requires Navigation/Robotics System Toolbox ---
-% From a quaternion and origin
-q = quaternion([30, 45, 60], 'eulerd', 'ZYX', 'frame');
-origin_q = [ -1; 0; 5];
-frame_q = ReferenceFrame3d(q, origin_q);
-
-% From an se3 object
-tform_se3 = se3(T);
-frame_se3 = ReferenceFrame3d(tform_se3);
+frame = ReferenceFrame3d(eye(3), [0 0 0])
+frame.show()
 ```
 
-### 3. Transforming Points
+### Create a relationship between two reference frames
+
+1. Create a `robot` reference frame relative to the `world`.
+```matlab
+world = ReferenceFrame3d(eye(3), [0 0 0]);
+robot = ReferenceFrame3d();
+robot.reposition([1 2 0]); % offset in x and y
+robot.rotate_eulerd(0, 0, 45); % turn 45 degrees (yaw)
+show([world robot]);
+```
+> `show([world robot])` is creating the hgtransform hierarchy (the relationship between the frames).  In practice, you'll probably prefer to call `hgtransform([world robot ...])` to create the transforms in your own axes.
+
+Now, let's plot some data into the local coordinates of each of these frames.  We'll plot the same vector `[1 1 0]` parented to the tranform for each object and see where it lands. 
 
 ```matlab
-% Define points in the local frame of frame1
-p_local = [1; 0; 0]; % Point along frame1's local x-axis
-points_local = [1 0 0; 0 1 0; 0 0 1; 1 1 1]; % Nx3 array
-
-% Transform to base frame coordinates
-p_base = frame1.local2base(p_local);
-points_base = frame1.local2base(points_local);
-
-fprintf('Local point [1;0;0] in base frame: [%.2f, %.2f, %.2f]\n', p_base);
-
-% Transform points from base frame to frame1's local coordinates
-p_local_check = frame1.base2local(p_base);
-points_local_check = frame1.base2local(points_base);
-
-fprintf('Base point back to local frame: [%.2f, %.2f, %.2f]\n', p_local_check);
-
-% Using separate x,y,z inputs/outputs
-x_local = [1; 0; 0; 1];
-y_local = [0; 1; 0; 1];
-z_local = [0; 0; 1; 1];
-[x_base, y_base, z_base] = frame1.local2base(x_local, y_local, z_local);
+plot3(world.hgtransform(), [0 1], [0 1], [0 0 ], 'k-', 'LineWidth', 2)
+plot3(robot.hgtransform(), [0 1], [0 1], [0 0 ], 'k--', 'LineWidth', 2)
 ```
 
-### 4. Modifying the Frame
+## Practical Examples
 
-```matlab
-frame_mod = ReferenceFrame3d(eye(3), [1; 1; 1]);
-disp('Initial Position:'); disp(frame_mod.t');
+### Plot ECEF data to an axes 
 
-% Apply incremental translation
-frame_mod.translate([0.5; -0.5; 0]);
-disp('After translate([0.5; -0.5; 0]):'); disp(frame_mod.t');
+### Creating a LiDAR point cloud viewer
 
-% Set absolute position
-frame_mod.reposition([5; 5; 5]);
-disp('After reposition([5; 5; 5]):'); disp(frame_mod.t');
-
-% Apply incremental rotation (30 degrees around current Z-axis)
-R_inc = eul2rotm([0, 0, pi/6]);
-frame_mod.rotate(R_inc);
-disp('After 30 deg Z rotation (DCM):'); disp(frame_mod.as_eulerd());
-
-% Apply incremental rotation using Euler angles (degrees)
-frame_mod.rotate_eulerd(0, 0, 30); % Another 30 deg around current Z
-disp('After 30 deg Z rotation (Euler):'); disp(frame_mod.as_eulerd());
-```
-
-### 5. Composition and Inverse
-
-```matlab
-% Define two frames
-frameA = ReferenceFrame3d(eul2rotm([0 0 pi/4]), [1; 0; 0]); % 45deg Z rot, translate X=1
-frameB = ReferenceFrame3d(eul2rotm([pi/4 0 0]), [0; 1; 0]); % 45deg X rot, translate Y=1
-
-% Compose: Transform from frameB's local coords to base frame
-% T_A_B = T_W_A * T_A_B (where W=World/Base)
-frame_comp = compose(frameA, frameB); % Equivalent to frame_comp = frameA * frameB;
-disp('Composed Frame (A * B):');
-disp(frame_comp); % Shows origin and Euler angles
-
-% Define a point in frameB's local coordinates
-p_B = [1; 0; 0];
-
-% Transform p_B directly to base frame using composed frame
-p_base_comp = frame_comp.local2base(p_B);
-
-% Transform step-by-step for verification
-p_A = frameB.local2base(p_B); % p_B relative to frameA
-p_base_step = frameA.local2base(p_A); % p_A relative to base
-
-fprintf('Composed transform result: [%.2f, %.2f, %.2f]\n', p_base_comp);
-fprintf('Step-by-step transform result: [%.2f, %.2f, %.2f]\n', p_base_step);
-
-% Calculate the inverse of frameA (transform from Base to A)
-frameA_inv = inv(frameA);
-disp('Inverse of Frame A:');
-disp(frameA_inv);
-
-% Verify: A * inv(A) should be identity
-frame_identity = frameA * frameA_inv;
-disp('A * inv(A) (should be close to identity):');
-disp(frame_identity.T);
-```
-
-### 6. Visualization
-
-```matlab
-% Create a figure and axes
-figure;
-ax = axes('DataAspectRatio', [1 1 1]);
-grid on; xlabel('X'); ylabel('Y'); zlabel('Z');
-view(3);
-
-% Plot the base frame (identity)
-base_frame = ReferenceFrame3d();
-base_frame.plot('Parent', ax, 'LineWidth', 2, 'LineLength', 0.5);
-
-% Create and plot another frame relative to the base
-frame1 = ReferenceFrame3d(eul2rotm([0 0 pi/4]), [1; 1; 0]);
-frame1.plot('Parent', ax, 'LineWidth', 2, 'LineLength', 1);
-
-% Create a frame relative to frame1 (hierarchical plotting)
-frame2 = ReferenceFrame3d(eul2rotm([pi/4 0 0]), [0.5; 0; 0]); % Relative offset along frame1's X
-% Parent plotting to frame1's hgtransform handle
-frame2.plot('Parent', frame1); % Auto-uses frame1.hgtransform if plotted
-
-% Modify frame1 and see graphics update automatically
-pause(1);
-frame1.translate([0; 0; 0.5]); % Move frame1 (and frame2 with it) up
-title('Frames after translation');
-pause(1);
-frame1.rotate_eulerd(0, 0, 45); % Rotate frame1 (and frame2 with it)
-title('Frames after rotation');
-
-% Draw a plane associated with frame2's XY plane
-frame2.draw_plane('Slice', 'xy', 'Size', [0.4 0.6], 'FaceColor', 'c', 'FaceAlpha', 0.5);
-
-% Use show() for a quick plot in a new figure
-frame_show = ReferenceFrame3d(eye(3), [2; 0; 0]);
-frame_show.show(); % Creates new figure and plots
-title('Plot using show()');
-```
-
-### 7. Conversion
-
-```matlab
-frame = ReferenceFrame3d(eul2rotm([pi/6, pi/4, pi/3]), [1; 2; 3]);
-
-T4x4 = frame.as_transform();
-R3x3 = frame.as_dcm();
-[roll_rad, pitch_rad, yaw_rad] = frame.as_euler();
-[roll_deg, pitch_deg, yaw_deg] = frame.as_eulerd();
-
-fprintf('Euler Angles (deg): Roll=%.2f, Pitch=%.2f, Yaw=%.2f\n', roll_deg, pitch_deg, yaw_deg);
-
-% --- Requires Navigation/Robotics System Toolbox ---
-try
-    frame_se3 = frame.se3();
-    frame_so3 = frame.so3();
-    frame_quat = frame.quaternion();
-    disp('Converted to se3:'); disp(frame_se3);
-    disp('Converted to quaternion:'); disp(frame_quat);
-catch ME
-    warning('Navigation/Robotics System Toolbox specific methods failed: %s', ME.message);
-end
-```
-
-### 8. Copying Objects
-
-```matlab
-frame_orig = ReferenceFrame3d(eul2rotm([0 0 pi/6]), [1; 0; 0]);
-frame_copy = copy(frame_orig);
-
-% Modify the copy - the original remains unchanged
-frame_copy.translate([0; 1; 0]);
-
-disp('Original frame origin:'); disp(frame_orig.t');
-disp('Copied frame origin:'); disp(frame_copy.t');
-```
+### 
 
 ## Properties
 
@@ -278,7 +60,7 @@ disp('Copied frame origin:'); disp(frame_copy.t');
 
 ### Read-Only
 *   `R` (3x3 double, Dependent): Rotation submatrix.
-*   `t` (3x1 double, Dependent): Translation vector (origin).
+*   `origin` (3x1 double, Dependent): Translation vector.
 *   `x`, `y`, `z` (3x1 double, Dependent): Basis vectors.
 
 ## Methods
