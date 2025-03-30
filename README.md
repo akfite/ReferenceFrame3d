@@ -5,7 +5,7 @@
 
 A MATLAB class to manage complex relationships between reference frames, particularly when plotting 3D scenes.  Intended for tracking, robotics, computer vision, and related fields.
 
-<img src="./assets/01_demo.gif" autoplay="true"/>
+<img src="./assets/01_demo.gif"/>
 
 ## Overview
 
@@ -15,31 +15,54 @@ This class is particularly useful for managing reference frames when plotting da
 
 ## Getting Started
 
-### Create and plot a reference frame
+### 1. Create and display a reference frame
 
 ```matlab
 frame = ReferenceFrame3d(eye(3), [0 0 0])
+% frame = ReferenceFrame3d() % equivalent
 frame.show()
 ```
 
-### Create a relationship between two reference frames
+<img src="./assets/02_oneframe.png"/>
 
-1. Create a `robot` reference frame relative to the `world`.
+### 2. Create and display the relationship between two reference frames
+
+Create a `robot` reference frame relative to the `world`.
 ```matlab
 world = ReferenceFrame3d(eye(3), [0 0 0]);
-robot = ReferenceFrame3d();
-robot.reposition([1 2 0]); % offset in x and y
+robot = ReferenceFrame3d(); % equivalent to above
+robot.reposition([0.5 1 0.5]); % offset w.r.t world origin in x and y
 robot.rotate_eulerd(0, 0, 45); % turn 45 degrees (yaw)
 show([world robot]);
 ```
-> `show([world robot])` is creating the hgtransform hierarchy (the relationship between the frames).  In practice, you'll probably prefer to call `hgtransform([world robot ...])` to create the transforms in your own axes.
 
-Now, let's plot some data into the local coordinates of each of these frames.  We'll plot the same vector `[1 1 0]` parented to the tranform for each object and see where it lands. 
+* `show()` will create a new figure into which it creates hgtransforms and plots the basis vectors for each frame
+* `plot()` creates hgtransforms and plots the basis vectors for each frame (into existing figure)
+* `hgtransform()` only creates hgtransforms (or gets the current transform, if one exists already)
+
+<img src="./assets/03_twoframes.png"/>
+
+Now plot some data into the local coordinates of each of these frames.  We'll plot the same vector `[1 1 0]` parented to the tranform for each object and see where it lands. 
 
 ```matlab
-plot3(world.hgtransform(), [0 1], [0 1], [0 0 ], 'k-', 'LineWidth', 2)
-plot3(robot.hgtransform(), [0 1], [0 1], [0 0 ], 'k--', 'LineWidth', 2)
+plot3(world.hgtransform(), [0 1], [0 1], [0 0], 'k-', 'LineWidth', 2)
+plot3(robot.hgtransform(), [0 1], [0 1], [0 0], 'k--', 'LineWidth', 2)
 ```
+<img src="./assets/04_twoframes.png"/>
+
+Notice how we are plotting the same local-frame vector in both cases, but by parenting to each frame's `hgtransform`, it gets automatically moved to the correct position in the world frame.  Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
+
+```matlab
+world.translate([0.5 0.5 0.25])
+```
+
+<img src="./assets/05_twoframes.png"/>
+
+### 3. Advanced Usage
+
+See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario. 
+
+<img src="./assets/01_demo.gif"/>
 
 ## Practical Examples
 
