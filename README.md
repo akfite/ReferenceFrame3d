@@ -5,7 +5,7 @@
 
 A MATLAB class to manage complex relationships between reference frames, particularly when plotting 3D scenes.  Intended for tracking, robotics, computer vision, and related fields.
 
-<img src="./assets/01_demo.gif" autoplay="true" width="50%" height="50%"/>
+<img src="./assets/01_demo.gif" autoplay="true"/>
 
 ## Overview
 
