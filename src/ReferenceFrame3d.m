@@ -68,7 +68,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     end
 
     methods (Static)
-        function this = from_point_normal(point, normal)
+        function obj = from_point_normal(point, normal)
             %FROM_POINT_NORMAL Creates a new frame to represent a plane.
             arguments
                 point(1,3) double {mustBeReal, mustBeFinite}
@@ -94,10 +94,25 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             T = [x_basis; y_basis; z_basis]';
             T(4,4) = 1;
             T(1:3,4) = point;
-            this = ReferenceFrame3d(T);
+            obj = ReferenceFrame3d(T);
         end
 
-        function this = from_coplanar_vectors(x_basis, y_basis, origin)
+        function obj = from_coplanar_vectors(v1, v2, origin)
+            %FROM_COPLANAR_VECTORS Create a frame using a coplanar vector pair.
+            arguments
+                v1(1,3) double
+                v2(1,3) double
+                origin(1,3) double = [0 0 0]
+            end
+
+            x_basis = v1;
+            z_basis = cross(v1, v2);
+            y_basis = cross(z_basis, x_basis);
+
+            dcm = [x_basis(:) y_basis(:) z_basis(:)];
+            dcm = dcm ./ vecnorm(dcm, 2, 1);
+
+            obj = ReferenceFrame3d(dcm, origin);
         end
 
         function validate_transform(T)
