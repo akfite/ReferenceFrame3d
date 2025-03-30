@@ -76,18 +76,20 @@ T = [0 1 0 5;  % Rotation: 90 deg around Z, Translation: [5; -2; 1]
 frame1 = ReferenceFrame3d(T);
 
 % From a 3x3 Rotation Matrix (DCM) and an origin vector
-R = eul2rotm([pi/4, 0, 0]); % 45 deg rotation around X
-origin = [1; 2; 3];
+R = eye(3);
+origin = [1 2 3];
 frame2 = ReferenceFrame3d(R, origin);
 
-% Setup an existing frame object
+% Update an existing frame
 frame3 = ReferenceFrame3d();
 frame3.setup(R, origin); % Same as frame2
+frame3 = ReferenceFrame3d();
+frame3.setup(frame2); % Same as frame2
 
-% From a point and normal (creates a frame representing a plane)
+% From a point and normal vector (creates a frame representing a plane)
 pt = [1 1 1];
-n = [0 0 1]; % Normal pointing up Z-axis
-plane_frame = ReferenceFrame3d.from_point_normal(pt, n);
+normal = [0 0 1];
+plane_frame = ReferenceFrame3d.from_point_normal(pt, normal);
 
 % --- Requires Navigation/Robotics System Toolbox ---
 % From a quaternion and origin
@@ -98,23 +100,6 @@ frame_q = ReferenceFrame3d(q, origin_q);
 % From an se3 object
 tform_se3 = se3(T);
 frame_se3 = ReferenceFrame3d(tform_se3);
-```
-
-### 2. Accessing Properties
-
-```matlab
-T_mat = frame1.T;        % Get the 4x4 matrix
-R_mat = frame1.R;        % Get the 3x3 rotation matrix
-t_vec = frame1.t;        % Get the 3x1 translation vector (origin)
-x_basis = frame1.x;      % Get the x-axis basis vector in the base frame
-y_basis = frame1.y;      % Get the y-axis basis vector in the base frame
-z_basis = frame1.z;      % Get the z-axis basis vector in the base frame
-
-disp('Frame 1 Origin:');
-disp(frame1.t);
-
-disp('Frame 1 Z-axis:');
-disp(frame1.z);
 ```
 
 ### 3. Transforming Points
@@ -302,7 +287,7 @@ disp('Copied frame origin:'); disp(frame_copy.t');
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
 *   `setup(rot, origin)`: Configure an existing object.
 
-> `rot` argument can be 4x4 T, 3x3 R, `quaternion`, `se3`, or `so3`.
+> `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
 
 #### Static Constructors (Utility)
 *   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
@@ -345,6 +330,7 @@ disp('Copied frame origin:'); disp(frame_copy.t');
 ### Other
 
 *   `copy()`: Create a deep copy of the object, including handle graphics (if applicable)
+    - `ReferenceFrame3d(other_frame)` to shallow copy
 *   `intersect_plane()`: Calculate ray-plane intersection.
 
 ## License

@@ -42,6 +42,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             if isscalar(rot)
                 switch string(class(rot))
+                    case "ReferenceFrame3d"
+                        T = rot.T; % only transform; no handless
                     case "quaternion"
                         T = rotmat(quat,"frame");
                         T(4,4) = 1;
@@ -96,7 +98,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function this = from_coplanar_vectors(x_basis, y_basis, origin)
-            %TODO
         end
 
         function validate_transform(T)
