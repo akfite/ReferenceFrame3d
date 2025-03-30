@@ -291,7 +291,7 @@ disp('Copied frame origin:'); disp(frame_copy.t');
 
 #### Static Constructors (Utility)
 *   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
-*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2)`: Create a frame to represent a plane using two coplanar vectors.
+*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors.
 
 ### Transformations
 

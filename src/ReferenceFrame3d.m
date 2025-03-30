@@ -116,7 +116,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function validate_transform(T)
-            %VALIDATE Check that the transform makes sense as configured.
+            %VALIDATE_TRANSFORM Check that the transform makes sense as configured.
             validateattributes(T, ...
                 {'single','double'}, ...
                 {'real','finite','2d','ncols',4,'nrows',4});
@@ -336,12 +336,30 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 return
             end
 
-            numerator = dot(normal, point - observer);
+            numerator = dot(normal(:), point(:) - observer(:));
             dist = numerator / denominator;
             p = observer + (dist * ray);
 
             if opts.Debug
-                % TODO
+                % create the figure & basis vectors
+                ax = this.show();
+
+                % try to size the plane in a way that makes sense for the problem
+                sz = unique(abs(p(p ~= 0))*4);
+                if isempty(sz), sz = [4 4]; end
+                if numel(sz) > 2, sz = maxk(sz, 2)*4; end
+
+                % draw the plane & intersecting line
+                this.draw_plane('Slice', opts.Slice, ...
+                    'Offset', opts.Offset, ...
+                    'Size', sz);
+                plot3([p(1) observer(1)], [p(2) observer(2)], [p(3) observer(3)], ...
+                    'r-', ...
+                    'Marker', 'o', ...
+                    'MarkerFaceColor','k', ...
+                    'Parent', ax);
+
+                view(ax, 45, 30);
             end
         end
     end
@@ -422,13 +440,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Graphics
     methods (Sealed)
-        function show(this)
+        function ax = show(this)
             %SHOW Plot everything in a new, dedicated figure.
             hfig = figure;
             ax = axes('parent', hfig);
             grid(ax, 'on');
             box(ax, 'on');
             this.plot('parent',ax);
+            hold(ax,'on');
         end
 
         function plot(objs, opts)
@@ -547,6 +566,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.Size(1,2) double {mustBeReal, mustBeFinite} = [4 4] % [x y]
                 opts.GridLineSpacing(1,2) double = [nan nan] % [x y]
                 opts.Datum(1,2) double = [nan nan] % [x y]
+                opts.Offset(1,1) double = 0
                 opts.FaceColor = 0.6*[1 1 1]
                 opts.FaceAlpha = 0.2
                 opts.EdgeColor = 0.2*[1 1 1]
@@ -574,7 +594,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             grid_y = grid_y + opts.Datum(2);
 
             [xdata, ydata] = meshgrid(grid_x, grid_y);
-            zdata = zeros(size(xdata));
+            zdata = repmat(opts.Offset, size(xdata));
 
             % our plane is defined in the x-y plane, but user may have requested a
             % different slice.  so we'll define a new frame co-located with the
