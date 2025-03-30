@@ -1,5 +1,6 @@
 classdef ReferenceFrame3d < matlab.mixin.Copyable ...
-        & matlab.mixin.CustomDisplay
+        & matlab.mixin.CustomDisplay ...
+        & matlab.mixin.SetGet
     
     properties
         T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
@@ -10,11 +11,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         x(3,1) double % x basis
         y(3,1) double % y basis
         z(3,1) double % z basis
-        t(3,1) double % translation (origin of reference frame)
+        origin(3,1) double % translation (origin of reference frame)
     end
 
     % graphics
-    properties (Access = protected, Transient)
+    properties (Access = ?matlab.unittest.TestCase, Transient)
         h_transform matlab.graphics.primitive.Transform
         h_plot_group matlab.graphics.primitive.Group
     end
@@ -290,7 +291,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         function this = inv(this)
             %INV Inverse of the transform.
             R_inv = this.R'; % transpose = inverse for a DCM by definition
-            t_inv = -R_inv * this.t;
+            t_inv = -R_inv * this.origin;
             this.T = [R_inv, t_inv; 0 0 0 1];
         end
     end
@@ -327,7 +328,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             normal = cross(a, b);
             normal = normal ./ norm(normal);
-            point = this.t + (opts.Offset * normal);
+            point = this.origin + (opts.Offset * normal);
 
             denominator = dot(normal, ray);
 
@@ -699,6 +700,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             %CLEAR Delete all graphics objects.
             for i = 1:numel(this)
                 delete(this(i).h_transform);
+                this(i).h_transform = matlab.graphics.primitive.Transform.empty;
+                this(i).h_plot_group = matlab.graphics.primitive.Group.empty;
             end
         end
     end
@@ -732,7 +735,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             v = this.T(1:3,3);
         end
 
-        function v = get.t(this)
+        function v = get.origin(this)
             v = this.T(1:3,4);
         end
     end
@@ -791,7 +794,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 '       pitch = %14.9f%s\n' ...
                 '       yaw   = %14.9f%s\n'], ...
                 footer, ...
-                frame.t, round(r+eps,9), deg, round(p+eps,9), deg, round(y+eps,9), deg);
+                frame.origin, round(r+eps,9), deg, round(p+eps,9), deg, round(y+eps,9), deg);
         end
 
         function displayNonScalarObject(obj)
