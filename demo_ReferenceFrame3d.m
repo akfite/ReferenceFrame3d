@@ -26,7 +26,7 @@ function demo_ReferenceFrame3d()
     frames.plot('Parent', ax, 'LineLength', 3);
 
     % if you want to plot without the basis vectors, call hgtransform()
-    % instead of plot() to only establish the hgtransform objects, e.g.:
+    % instead of plot() to only establish the hgtransform object hierarchy, e.g.:
     % frames.hgtransform(ax);
 
     % add our own plots to supplement the basis vectors already drawn
@@ -44,18 +44,25 @@ function demo_ReferenceFrame3d()
         'Tag', 'SECOND_ARM');
 
     world.draw_plane(...
-        'Clipping','on','Size',[50 50],'GridLineSpacing',[5 5],'FaceAlpha',0.05);
+        'Clipping','on',...
+        'Size',[50 50],...
+        'GridLineSpacing',[5 5],...
+        'FaceAlpha',0.05,...
+        'EdgeAlpha',0.1);
     base.draw_plane(...
-        'Clipping','on','Size',[50 50],'GridLineSpacing',[5 5],'FaceAlpha',0.05);
+        'Clipping','on',...
+        'Size',[50 50],...
+        'GridLineSpacing',[5 5],...
+        'FaceAlpha',0.05);
     second_arm.draw_plane('FaceColor','r');
 
+    %% animation loop
     clock = tic;
     time = toc(clock);
 
     warnstate = warning('off', 'MATLAB:hg:DiceyTransformMatrix');
     on_exit(end+1) = onCleanup(@() warning(warnstate));
 
-    %% animation loop
     while true
         if ~isvalid(hfig)
             break
