@@ -57,15 +57,16 @@ show(frames); % creates an hgtransform hierarchy in a new figure
 We'll plot the same `[1 1 0]` position vector into the local coordinates of each of our frames.  It's critical that we parent each line to the correct `hgtransform`.
 
 ```matlab
-plot3(world.hgtransform(), [0 1], [0 1], [0 0], 'k-', 'LineWidth', 2)
-
-% plot the point in two equivalent ways
+% plot the point described above in two equivalent ways (note the parent changing)
 plot3(robot.hgtransform(), [0 1], [0 1], [0 0], 'k--', 'LineWidth', 2)
 plot3(world.hgtransform(), p_world(1), p_world(2), p_world(3), 'ro', 'MarkerSize', 12)
+
+% also draw the `[1 1 0]` vector expressed in the world frame
+plot3(world.hgtransform(), [0 1], [0 1], [0 0], 'k--', 'LineWidth', 2)
 ```
 <img src="./assets/04_twoframes.png"/>
 
-Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, the line gets automatically moved to the correct position in the world frame.  Here, `p_world` is represented by the dashed black line and the red circle at its tip.
+Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, the line gets automatically moved to the correct position in the world frame.  Here, `p_world` is represented by the solid black line and the red circle at its tip.
 
 Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
 
