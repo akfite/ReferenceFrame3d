@@ -66,7 +66,7 @@ plot3(world.hgtransform(), [0 1], [0 1], [0 0], 'k--', 'LineWidth', 2)
 ```
 <img src="./assets/04_twoframes.png"/>
 
-Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, the line gets automatically moved to the correct position in the world frame.  Here, `p_world` is represented by the solid black line and the red circle at its tip.
+Notice how by parenting to each reference frame's `hgtransform`, the line gets automatically moved to the correct position in the world frame.  Here, `p_world` is represented by the solid black line and the red circle at its tip.
 
 Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
 
@@ -106,7 +106,7 @@ See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more co
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
 *   `update(rot, origin)`: Configure an existing object.
 
-> `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
+> **Note:** `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
 
 #### Static Constructors (Utility)
 *   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
@@ -132,11 +132,13 @@ See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more co
 *   `as_euler()`: Return `[roll, pitch, yaw]` in radians.
 *   `as_eulerd()`: Return `[roll, pitch, yaw]` in degrees.
 
-### Toolbox Conversions (Optional)
+### Toolbox Support (convert to/from MATLAB's built-in types)
 
+These methods are subject to the availability of the relevant toolbox on your machine.
 *   `se3()`: Convert to `se3` object.
 *   `so3()`: Convert to `so3` object.
 *   `quaternion()`: Convert rotation to `quaternion` object.
+> **Note:** these objects are also valid as input to the constructor
 
 ### Graphics
 
@@ -151,16 +153,6 @@ See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more co
 *   `copy()`: Create a deep copy of the object, including handle graphics (if applicable)
     - `ReferenceFrame3d(other_frame)` to shallow copy
 *   `intersect_plane()`: Calculate ray-plane intersection.
-
-## Practical Use-Cases
-
-### 💡 Create, display, and move between new reference frames intuitively
-
-### 💡 Animate the manipulating arms of a robot
-
-### 💡 Build a LiDAR point cloud viewer that plots measurements directly in the sensor frame
-
-### 💡 Plot aircraft trajectories in ECEF and transform to local ENU in the axis
 
 ## License
 
