@@ -23,7 +23,7 @@ frame = ReferenceFrame3d(eye(3), [0 0 0])
 frame.show()
 ```
 > ℹ️ For plotting, you can call 3 different methods depending on your application: 
-> * `show()` creates a new figure, create hgtransforms, and plot the basis vectors for each frame
+> * `show()` creates a new figure, creates hgtransforms, and plot the basis vectors for each frame
 > * `plot()` creates hgtransforms and plots the basis vectors for each frame (into existing container)
 > * `hgtransform()` creates hgtransforms (or gets the current transform, if one exists already)
 
