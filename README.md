@@ -22,6 +22,10 @@ frame = ReferenceFrame3d(eye(3), [0 0 0])
 % frame = ReferenceFrame3d() % equivalent
 frame.show()
 ```
+> ℹ️ For plotting, you can call 3 different methods depending on your application: 
+> * `show()` creates a new figure, create hgtransforms, and plot the basis vectors for each frame
+> * `plot()` creates hgtransforms and plots the basis vectors for each frame (into existing container)
+> * `hgtransform()` creates hgtransforms (or gets the current transform, if one exists already)
 
 <img src="./assets/02_oneframe.png"/>
 
@@ -31,14 +35,10 @@ Create a `robot` reference frame relative to the `world`.
 ```matlab
 world = ReferenceFrame3d(eye(3), [0 0 0]);
 robot = ReferenceFrame3d(); % equivalent to above
-robot.reposition([0.5 1 0.5]); % offset w.r.t world origin in x and y
+robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
 robot.rotate_eulerd(0, 0, 45); % turn 45 degrees (yaw)
 show([world robot]);
 ```
-
-* `show()` will create a new figure into which it creates hgtransforms and plots the basis vectors for each frame
-* `plot()` creates hgtransforms and plots the basis vectors for each frame (into existing figure)
-* `hgtransform()` only creates hgtransforms (or gets the current transform, if one exists already)
 
 <img src="./assets/03_twoframes.png"/>
 
@@ -50,7 +50,7 @@ plot3(robot.hgtransform(), [0 1], [0 1], [0 0], 'k--', 'LineWidth', 2)
 ```
 <img src="./assets/04_twoframes.png"/>
 
-Notice how we are plotting the same local-frame vector in both cases, but by parenting to each frame's `hgtransform`, it gets automatically moved to the correct position in the world frame.  Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
+Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, it gets automatically moved to the correct position in the world frame.  Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
 
 ```matlab
 world.translate([0.5 0.5 0.25])
@@ -58,19 +58,13 @@ world.translate([0.5 0.5 0.25])
 
 <img src="./assets/05_twoframes.png"/>
 
-### 3. Advanced Usage
+### 3. Animate a sequence of nested reference frames
 
-See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario. 
+See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario with multiple nested reference frames rotating with respect to one another.
 
 <img src="./assets/01_demo.gif"/>
 
-## Practical Examples
-
-### Plot ECEF data to an axes 
-
-### Creating a LiDAR point cloud viewer
-
-### 
+# API Overview
 
 ## Properties
 
@@ -139,6 +133,16 @@ See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more co
 *   `copy()`: Create a deep copy of the object, including handle graphics (if applicable)
     - `ReferenceFrame3d(other_frame)` to shallow copy
 *   `intersect_plane()`: Calculate ray-plane intersection.
+
+## Practical Use-Cases
+
+### 💡 Create, display, and move between new reference frames intuitively
+
+### 💡 Animate the manipulating arms of a robot
+
+### 💡 Build a LiDAR point cloud viewer that plots measurements directly in the sensor frame
+
+### 💡 Plot aircraft trajectories in ECEF and transform to local ENU in the axis
 
 ## License
 
