@@ -20,7 +20,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         h_plot_group matlab.graphics.primitive.Group
     end
 
-    %% Construction
+    %% Construct/Update
     methods
         function this = ReferenceFrame3d(matrix, origin)
             %REFERENCEFRAME3D Constructor.
@@ -28,11 +28,11 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 matrix = eye(4)
                 origin(1,3) double = [0 0 0]
             end
-            this.setup(matrix, origin);
+            this.update(matrix, origin);
         end
 
-        function this = setup(this, rot, origin)
-            %SETUP Configure an existing object with a 3x3 DCM & origin vector.
+        function this = update(this, rot, origin)
+            %UPDATE Set the state of an existing object.
             arguments
                 this(1,1) ReferenceFrame3d
                 rot
@@ -64,7 +64,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 T = rot;
             end
 
-            this.T = T;
+            this.T = T; % triggers set.T()
         end
     end
 

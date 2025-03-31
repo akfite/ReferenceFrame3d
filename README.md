@@ -73,7 +73,7 @@ See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more co
     * public access
     * transform is validated before setting
     * updates hgtransform object when set (if one exists)
-    * recommend setting this property via method `setup(rot, origin)` or other methods for rotation, translation, etc
+    * recommend setting this property via method `update(rot, origin)` or other methods for rotation, translation, etc
 
 ### Read-Only
 *   `R` (3x3 double, Dependent): Rotation submatrix.
@@ -86,7 +86,7 @@ See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more co
 *   `ReferenceFrame3d()`: Default constructor (`eye(4)`).
 *   `ReferenceFrame3d(rot)`: Rotation-only constructor.
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
-*   `setup(rot, origin)`: Configure an existing object.
+*   `update(rot, origin)`: Configure an existing object.
 
 > `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
 
