@@ -37,20 +37,37 @@ world = ReferenceFrame3d(eye(3), [0 0 0]);
 robot = ReferenceFrame3d(); % equivalent to above
 robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
 robot.rotate_eulerd(0, 0, 45); % turn 45 degrees (yaw)
-show([world robot]);
+```
+
+Transform a vector (`[1 1 0]`--a point in space) from the local frame of the robot to the world frame.
+```matlab
+frames = [world, robot] % concatenate to describe a transformation sequence
+p_world = frames.local2base([1 1 0]) % local of frames(end) to base of frames(1)
+```
+>p_world = [1.9142,    1.0000,    0.5000]
+
+Let's view this result graphically.
+
+```matlab
+show(frames); % creates an hgtransform hierarchy in a new figure
 ```
 
 <img src="./assets/03_twoframes.png"/>
 
-Now plot some data into the local coordinates of each of these frames.  We'll plot the same vector `[1 1 0]` parented to the tranform for each object and see where it lands. 
+We'll plot the same `[1 1 0]` position vector into the local coordinates of each of our frames.  It's critical that we parent each line to the correct `hgtransform`.
 
 ```matlab
 plot3(world.hgtransform(), [0 1], [0 1], [0 0], 'k-', 'LineWidth', 2)
+
+% plot the point in two equivalent ways
 plot3(robot.hgtransform(), [0 1], [0 1], [0 0], 'k--', 'LineWidth', 2)
+plot3(world.hgtransform(), p_world(1), p_world(2), p_world(3), 'ro', 'MarkerSize', 12)
 ```
 <img src="./assets/04_twoframes.png"/>
 
-Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, it gets automatically moved to the correct position in the world frame.  Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
+Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, it gets automatically moved to the correct position in the world frame.  Here, `p_world` is represented by the dashed black line and the red circle at its tip.
+
+Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
 
 ```matlab
 world.translate([0.5 0.5 0.25])
