@@ -137,7 +137,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Math & Utility
     methods (Sealed)
-        function varargout = local2base(this, varargin)
+        function varargout = local2base(frames, varargin)
             %LOCAL2BASE Transform a vector from the local to base frame (translate & rot)
             nargoutchk(0,3);
 
@@ -156,10 +156,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 local_vec(:,4) = 1; % to homogeneous coordinates
             end
 
-            if isscalar(this)
-                T = this.T;
+            if isscalar(frames)
+                T = frames.T;
             else
-                T = compose(this).as_transform(); % combine rotations
+                T = compose(frames).as_transform();
             end
 
             % create a dimension deleter (delete 4th dim of output)
@@ -180,7 +180,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function varargout = base2local(this, varargin)
+        function varargout = base2local(frames, varargin)
             %BASE2LOCAL Transform a vector from the base to local frame (translate & rot)
             nargoutchk(0,3);
 
@@ -199,10 +199,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 base_vec(:,4) = 1; % to homogeneous coordinates
             end
 
-            if isscalar(this)
-                T = inv(this).as_transform();
+            if isscalar(frames)
+                T = inv(frames).as_transform();
             else
-                T = inv(compose(this)).as_transform(); % combine rotations
+                T = inv(compose(frames)).as_transform();
             end
 
             % create a dimension deleter (delete 4th dim of output)
