@@ -65,7 +65,7 @@ plot3(world.hgtransform(), p_world(1), p_world(2), p_world(3), 'ro', 'MarkerSize
 ```
 <img src="./assets/04_twoframes.png"/>
 
-Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, it gets automatically moved to the correct position in the world frame.  Here, `p_world` is represented by the dashed black line and the red circle at its tip.
+Notice how we are plotting the same local-frame vector in both cases, but by parenting to each reference frame's `hgtransform`, the line gets automatically moved to the correct position in the world frame.  Here, `p_world` is represented by the dashed black line and the red circle at its tip.
 
 Any changes made to a `ReferenceFrame3d` will be automatically reflected in the axes (the `hgtransform` is kept in sync with the object state).  For example:
 
