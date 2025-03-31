@@ -298,6 +298,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     methods
         function [p, dist] = intersect_plane(this, observer, ray, opts)
+            %INTERSECT_PLANE Fire a ray at a 2D slice of the reference frame.
             arguments
                 this(1,1) ReferenceFrame3d
                 observer(1,3) double
@@ -359,8 +360,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                     'Marker', 'o', ...
                     'MarkerFaceColor','k', ...
                     'Parent', ax);
-
-                view(ax, 45, 30);
             end
         end
     end
