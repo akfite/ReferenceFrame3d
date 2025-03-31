@@ -58,7 +58,7 @@ We'll plot the same `[1 1 0]` position vector into the local coordinates of each
 
 ```matlab
 % plot the point described above in two equivalent ways (note the parent changing)
-plot3(robot.hgtransform(), [0 1], [0 1], [0 0], 'k--', 'LineWidth', 2)
+plot3(robot.hgtransform(), [0 1], [0 1], [0 0], 'k-', 'LineWidth', 2)
 plot3(world.hgtransform(), p_world(1), p_world(2), p_world(3), 'ro', 'MarkerSize', 12)
 
 % also draw the `[1 1 0]` vector expressed in the world frame
