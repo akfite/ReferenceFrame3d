@@ -461,6 +461,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.LineStyle(1,:) char = '-'
                 opts.LineLength(1,3) double = 1
                 opts.EnableArrowhead(1,3) matlab.lang.OnOffSwitchState = 1
+                opts.EnableTextLabel(1,3) matlab.lang.OnOffSwitchState = 0
             end
 
             % create the transforms (if they don't already exist)
@@ -514,9 +515,16 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                         'Clipping', 'off', ...
                         'Tag', 'RF3D_BASIS_VECTORS');
                 end
+                basis_letter = 'xyz';
                 for j = 1:3
                     if opts.EnableArrowhead(j)
                         plot_arrowhead(objs(i).h_plot_group, sz(j), opts.Colors(j), j);
+                    end
+                    if opts.EnableTextLabel(j)
+                        text(sz(1)*(j==1), sz(2)*(j==2), sz(3)*(j==3), ...
+                            string([' ' basis_letter(j)]), ...
+                            'Parent', objs(i).h_plot_group, ...
+                            'Color', opts.Colors(j))
                     end
                 end
                 line(0, 0, 0, ...
