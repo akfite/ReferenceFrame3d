@@ -567,6 +567,65 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
+        function h = draw_box(obj, opts)
+            %DRAW_BOX Draw a rectangular prism.
+            arguments
+                obj(1,1) ReferenceFrame3d
+                opts.Dimensions(1,3) double {mustBeFinite} = [1 1 1] % xyz (length)
+                opts.Center(1,3) double {mustBeFinite} = [0 0 0] % xyz (center)
+                opts.FaceColor = 0.6*[1 1 1]
+                opts.FaceAlpha = 0.2
+                opts.EdgeColor = 0.2*[1 1 1]
+                opts.EdgeAlpha = 0.2
+                opts.LineStyle(1,:) char = '-'
+                opts.Clipping(1,1) matlab.lang.OnOffSwitchState = 'off'
+            end
+
+            % half lengths
+            hx = opts.Dimensions(1) / 2; 
+            hy = opts.Dimensions(2) / 2; 
+            hz = opts.Dimensions(3) / 2;
+        
+            % define the 2x2 coordinate matrices for each face in order of
+            % bottom, top, front, back, left, right
+            Xb=[-hx +hx; -hx +hx]; Yb=[-hy -hy; +hy +hy]; Zb=[-hz -hz; -hz -hz];
+            Xt=[-hx +hx; -hx +hx]; Yt=[-hy -hy; +hy +hy]; Zt=[+hz +hz; +hz +hz];
+            Xf=[-hx +hx; -hx +hx]; Yf=[-hy -hy; -hy -hy]; Zf=[-hz -hz; +hz +hz];
+            Xk=[-hx +hx; -hx +hx]; Yk=[+hy +hy; +hy +hy]; Zk=[-hz -hz; +hz +hz];
+            Xl=[-hx -hx; -hx -hx]; Yl=[-hy +hy; -hy +hy]; Zl=[-hz -hz; +hz +hz];
+            Xr=[+hx +hx; +hx +hx]; Yr=[-hy +hy; -hy +hy]; Zr=[-hz -hz; +hz +hz];
+        
+            % combine into larger matrices using NaNs to separate
+            % (arrange faces conceptually in a 2x3 grid within the matrices)
+            nan_col = NaN(2,1); % NaN column separator
+            row1X = [Xb, nan_col, Xt, nan_col, Xf]; % 3 faces side-by-side
+            row1Y = [Yb, nan_col, Yt, nan_col, Yf];
+            row1Z = [Zb, nan_col, Zt, nan_col, Zf];
+        
+            nan_row = NaN(1, size(row1X, 2)); % NaN row separator
+        
+            row2X = [Xk, nan_col, Xl, nan_col, Xr]; % next 3 faces side-by-side
+            row2Y = [Yk, nan_col, Yl, nan_col, Yr];
+            row2Z = [Zk, nan_col, Zl, nan_col, Zr];
+        
+            % final matrices for the single surface object
+            X = opts.Center(1) + [row1X; nan_row; row2X];
+            Y = opts.Center(2) + [row1Y; nan_row; row2Y];
+            Z = opts.Center(3) + [row1Z; nan_row; row2Z];
+        
+            h = surface(X, Y, Z, ...
+                'FaceColor', opts.FaceColor, ...
+                'FaceAlpha', opts.FaceAlpha, ...
+                'EdgeColor', opts.EdgeColor, ...
+                'EdgeAlpha', opts.EdgeAlpha, ...
+                'LineStyle', opts.LineStyle, ...
+                'Clipping', opts.Clipping, ...
+                'HitTest','off', ...
+                'PickableParts','none', ...
+                'Tag', sprintf('BOX (%.3f x %.3f x %.3f)', opts.Dimensions), ...
+                'Parent', hgtransform(obj));
+        end
+
         function h = draw_plane(obj, opts)
             %DRAW_PLANE Draw a plane in the axis.
             arguments
@@ -640,8 +699,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 'Clipping', opts.Clipping, ...
                 'HitTest','off', ...
                 'PickableParts','none', ...
-                'Tag', sprintf('%s_PLANE', upper(opts.Slice)), ...
-                'Parent', obj.h_transform);
+                'Tag', sprintf('PLANE (%s)', upper(opts.Slice)), ...
+                'Parent', hgtransform(obj));
         end
 
         function tform = hgtransform(objs, parent)
