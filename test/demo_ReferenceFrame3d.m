@@ -19,7 +19,7 @@ function demo_ReferenceFrame3d()
     base = ReferenceFrame3d(eye(3));
     first_arm = ReferenceFrame3d(eye(3), [10 0 0]); % fixed to the base
     second_arm = ReferenceFrame3d(eye(3), [2 0 3]); % in 1st arm's frame
-    second_arm.rotate_eulerd(0, 15, 30);
+    second_arm.rotate_eulerd(30, 15, 0);
 
     % plot all the objects in the axis
     frames = [world, base, first_arm, second_arm];
@@ -73,11 +73,11 @@ function demo_ReferenceFrame3d()
 
         % base frame rotates at 30 deg/s around the z axis
         yaw = 30 * elapsed;
-        base.rotate_eulerd(0, 0, yaw);
+        base.rotate_eulerd(yaw, 0, 0);
 
         % an attachment on the arm rotates in the opposite direction at 90 deg/s
         yaw = -180 * elapsed;
-        first_arm.rotate_eulerd(0, 0, yaw);
+        first_arm.rotate_eulerd(yaw, 0, 0);
 
         % now, as we rotate, let's animate a circular path in the second arm's frame.
         % we'll observe how we can plot directly in local coordinates, and the plot

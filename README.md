@@ -36,7 +36,7 @@ Create a `robot` reference frame relative to the `world`.
 world = ReferenceFrame3d(eye(3), [0 0 0]);
 robot = ReferenceFrame3d(); % equivalent to above
 robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
-robot.rotate_eulerd(0, 0, 45); % turn 45 degrees (yaw)
+robot.rotate_eulerd(45, 0, 0); % turn 45 degrees (yaw)
 ```
 
 Transform a vector (`[1 1 0]`--a point in space) from the local frame of the robot to the world frame.
@@ -119,8 +119,8 @@ See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more co
 *   `translate(dxyz)`: Apply incremental translation.
 *   `reposition(new_pos)`: Set absolute origin.
 *   `rotate(dcm)`: Apply incremental rotation (3x3 DCM).
-*   `rotate_euler(r, p, y)`: Apply incremental ZYX Euler rotation (radians).
-*   `rotate_eulerd(r, p, y)`: Apply incremental ZYX Euler rotation (degrees).
+*   `rotate_euler(y, p, r)`: Apply incremental ZYX Euler rotation (radians).
+*   `rotate_eulerd(y, p, r)`: Apply incremental ZYX Euler rotation (degrees).
 *   `compose(frame1, frame2, ...)`: Compose a sequence of frames.
 *   `mtimes(other)` or `*`: Overload for composition.
 *   `inv()`: Compute inverse transformation.
