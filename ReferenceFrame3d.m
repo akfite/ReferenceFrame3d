@@ -524,7 +524,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                         text(sz(1)*(j==1), sz(2)*(j==2), sz(3)*(j==3), ...
                             string([' ' basis_letter(j)]), ...
                             'Parent', objs(i).h_plot_group, ...
-                            'Color', opts.Colors(j))
+                            'Color', opts.Colors(j), ...
+                            'HitTest','off', ...
+                            'PickableParts','none');
                     end
                 end
                 line(0, 0, 0, ...
@@ -765,12 +767,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function clear(this)
+        function clear(objs)
             %CLEAR Delete all graphics objects.
-            for i = 1:numel(this)
-                delete(this(i).h_transform);
-                this(i).h_transform = matlab.graphics.primitive.Transform.empty;
-                this(i).h_plot_group = matlab.graphics.primitive.Group.empty;
+            for i = 1:numel(objs)
+                delete(objs(i).h_transform);
+                objs(i).h_transform = matlab.graphics.primitive.Transform.empty;
+                objs(i).h_plot_group = matlab.graphics.primitive.Group.empty;
             end
         end
     end

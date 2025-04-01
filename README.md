@@ -149,6 +149,8 @@ These methods are subject to the availability of the relevant toolbox on your ma
 *   `draw_box()`: Draw a configurable rectangular prism (aligned to the basis vectors of the frame)
 *   `clear()`: Delete all graphics associated with the object.
 
+> **Important:** a `ReferenceFrame3d` object uses `handle` semantics and can only control at most **one** `hgtransform` at a time!  i.e. if you call `plot()` followed by `show()`, your original plot will get deleted as the new transform is created for your new figure.
+
 ### Other
 
 *   `copy()`: Create a deep copy of the object, including handle graphics (if applicable)
