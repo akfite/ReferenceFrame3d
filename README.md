@@ -146,6 +146,7 @@ These methods are subject to the availability of the relevant toolbox on your ma
 *   `plot()`: Plot the basis vectors for one or more frames to an existing axis.  An array of frames is plotted in an hgtransform hierarchy where the first frame is the root.
 *   `hgtransform(parent)`: Get or create the underlying `hgtransform` graphics object.  An array of frames creates an hgtransform hierarchy where the first frame is the root.  When plotting, parent your handles to the `obj.hgtransform()` that defines the coordinate frame your data is expressed in.
 *   `draw_plane()`: Draw a configurable plane defined by a pair of basis vectors for the frame (e.g. 'xy')
+*   `draw_box()`: Draw a configurable rectangular prism (aligned to the basis vectors of the frame)
 *   `clear()`: Delete all graphics associated with the object.
 
 ### Other

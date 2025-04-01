@@ -568,7 +568,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function h = draw_box(obj, opts)
-            %DRAW_BOX Draw a rectangular prism.
+            %DRAW_BOX Draw a rectangular prism aligned to the basis vectors of the frame.
             arguments
                 obj(1,1) ReferenceFrame3d
                 opts.Dimensions(1,3) double {mustBeFinite} = [1 1 1] % xyz (length)
@@ -580,6 +580,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.LineStyle(1,:) char = '-'
                 opts.Clipping(1,1) matlab.lang.OnOffSwitchState = 'off'
             end
+
+            validateattributes(opts.Dimensions, {'double'},{'>',0,'real'});
 
             % half lengths
             hx = opts.Dimensions(1) / 2; 
