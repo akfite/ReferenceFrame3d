@@ -1,4 +1,4 @@
-function demo_ReferenceFrame3d()
+function demo_01_ReferenceFrame3d()
 
     hfig = figure;
     ax = axes('parent', hfig);

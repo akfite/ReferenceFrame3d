@@ -78,9 +78,15 @@ world.translate([0.5 0.5 0.25])
 
 ### 3. Animate a sequence of nested reference frames
 
-See [demo_ReferenceFrame3d](./test/demo_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario with multiple nested reference frames rotating with respect to one another.
+See [demo_01_ReferenceFrame3d](./test/demo_01_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario with multiple nested reference frames rotating with respect to one another.
 
 <img src="./assets/01_demo.gif"/>
+
+### 4. Plotting in practice
+
+For most real-world applications, you probably want to draw something other than a bunch of basis vectors flying all over the screen.  So let's walk through an example where we use `ReferenceFrame3d` as a convenient way to work with `hgtransform` objects behind-the-scenes.
+
+For this example we'll 
 
 # API Overview
 
