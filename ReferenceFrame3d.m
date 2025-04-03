@@ -15,7 +15,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     end
 
     % graphics
-    properties (Access = ?matlab.unittest.TestCase, Transient)
+    properties (Access = protected, Transient)
         h_transform matlab.graphics.primitive.Transform
         h_plot_group matlab.graphics.primitive.Group
     end
