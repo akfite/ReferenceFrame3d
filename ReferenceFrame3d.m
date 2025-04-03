@@ -846,9 +846,15 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 footer = '';
                 frame = this;
             else
-                footer = sprintf( ...
-                    ['   This array represents a transformation sequence.  ' ...
-                    'When composed:\n\n']);
+                footer = '   This array represents a transformation sequence.';
+
+                % don't let UI hang if user created huge array
+                if numel(this) > 50
+                    footer = sprintf('%s\n', footer);
+                    return
+                end
+
+                footer = sprintf('%s  When composed:\n\n', footer);
                 frame = compose(this);
             end
 
