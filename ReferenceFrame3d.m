@@ -22,13 +22,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Construct/Update
     methods
-        function this = ReferenceFrame3d(matrix, origin)
+        function this = ReferenceFrame3d(rot, origin)
             %REFERENCEFRAME3D Constructor.
             arguments
-                matrix = eye(4)
+                rot = eye(4)
                 origin(1,3) double = [0 0 0]
             end
-            this.update(matrix, origin);
+            this.update(rot, origin);
         end
 
         function this = update(this, rot, origin)
@@ -241,8 +241,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             this.T(1:3,4) = new_pos;
         end
         
-        function this = rotate(this, dcm)
-            %ROTATE Rotate with a 3x3 Direction Cosine Matrix (DCM).
+        function this = rotate_dcm(this, dcm)
+            %ROTATE_DCM Rotate with a 3x3 Direction Cosine Matrix (DCM).
             arguments
                 this(1,1) ReferenceFrame3d
                 dcm(3,3) double

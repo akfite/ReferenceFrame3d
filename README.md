@@ -110,7 +110,7 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 ### Construction
 
 *   `ReferenceFrame3d()`: Default constructor (`eye(4)`).
-*   `ReferenceFrame3d(rot)`: Rotation-only constructor.
+*   `ReferenceFrame3d(rot)`: Rotation-only constructor (or directly assign a 4x4 transform).
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
 *   `update(rot, origin)`: Configure an existing object.
 
@@ -126,7 +126,7 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 *   `base2local(vec)` or `base2local(x,y,z)`: Transform base coordinates to local.
 *   `translate(dxyz)`: Apply incremental translation.
 *   `reposition(new_pos)`: Set absolute origin.
-*   `rotate(dcm)`: Apply incremental rotation (3x3 DCM).
+*   `rotate_dcm(dcm)`: Apply incremental rotation (3x3 DCM).
 *   `rotate_euler(y, p, r)`: Apply incremental ZYX Euler rotation (radians).
 *   `rotate_eulerd(y, p, r)`: Apply incremental ZYX Euler rotation (degrees).
 *   `compose(frame1, frame2, ...)`: Compose a sequence of frames.
