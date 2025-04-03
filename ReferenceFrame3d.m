@@ -711,8 +711,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function tform = hgtransform(objs, parent)
-            %HGTRANSFORM Get the graphics transform paired to this object.
-
+            %HGTRANSFORM Get/create the graphics transforms.
             arguments
                 objs(:,1) ReferenceFrame3d
                 parent = []
@@ -761,7 +760,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function update_hgtransform(objs)
-            %UPDATE_TRANSFORM Update the graphics transform to match the object state.
+            %UPDATE_HGTRANSFORM Update the graphics transform to match the object state.
             for i = 1:numel(objs)
                 if isempty(objs(i).h_transform) || ~isvalid(objs(i).h_transform)
                     continue
@@ -831,14 +830,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% matlab.mixin.CustomDisplay
     methods (Sealed, Access = protected)
-        function header = getHeader(obj)
-            header = getHeader@matlab.mixin.CustomDisplay(obj);
-        end
-
-        function groups = getPropertyGroups(obj)
-            groups = getPropertyGroups@matlab.mixin.CustomDisplay(obj);
-        end
-
         function footer = getFooter(this)
             deg = char(176);
 
@@ -846,15 +837,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 footer = '';
                 frame = this;
             else
-                footer = '   This array represents a transformation sequence.';
-
-                % don't let UI hang if user created huge array
-                if numel(this) > 50
-                    footer = sprintf('%s\n', footer);
-                    return
+                % don't display a custom footer for massive or multi-dim arrays
+                if numel(this) > 100 || nnz(size(this) ~= 1) > 1
+                    footer = ''; return
                 end
 
+                footer = '   This array represents a transformation sequence.';
                 footer = sprintf('%s  When composed:\n\n', footer);
+
                 frame = compose(this);
             end
 
@@ -875,22 +865,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 '       roll  = %14.9f%s\n'], ...
                 footer, ...
                 frame.origin, round(y+eps,9), deg, round(p+eps,9), deg, round(r+eps,9), deg);
-        end
-
-        function displayNonScalarObject(obj)
-            displayNonScalarObject@matlab.mixin.CustomDisplay(obj);
-        end
-
-        function displayScalarObject(obj)
-            displayScalarObject@matlab.mixin.CustomDisplay(obj);
-        end
-
-        function displayEmptyObject(obj)
-            displayEmptyObject@matlab.mixin.CustomDisplay(obj);
-        end
-
-        function displayScalarHandleToDeletedObject(obj)
-            displayScalarHandleToDeletedObject@matlab.mixin.CustomDisplay(obj);
         end
     end
 
