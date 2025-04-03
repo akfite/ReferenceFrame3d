@@ -116,6 +116,36 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj = ReferenceFrame3d(dcm, origin);
         end
 
+        function obj = from_campos(ax)
+            %FROM_CAMPOS Create a transform for the current camera perspective.
+            arguments
+                ax(1,1) matlab.graphics.axis.Axes = gca
+            end
+
+            obj = ReferenceFrame3d.from_lookat(...
+                campos(ax), ...
+                camtarget(ax), ...
+                camup(ax));
+        end
+
+        function obj = from_lookat(observer, target, up)
+            %FROM_LOOKAT Create a transform for an observer's perspective.
+            arguments
+                observer(1,3) double % position
+                target(1,3) double % position
+                up(1,3) double % up at observer
+            end
+
+            z = target - observer; % viewing axis
+            x = cross(z, up); % right
+            y = cross(z, x); % down
+
+            dcm = [x(:) y(:) z(:)];
+            dcm = dcm ./ vecnorm(dcm, 2, 1); % make unit vectors
+
+            obj = ReferenceFrame3d(dcm, observer);
+        end
+
         function validate_transform(T)
             %VALIDATE_TRANSFORM Check that the transform makes sense as configured.
             validateattributes(T, ...

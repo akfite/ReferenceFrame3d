@@ -118,7 +118,10 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 
 #### Static Constructors (Utility)
 *   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
-*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors.
+*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
+*   `ReferenceFrame3d.from_campos(ax)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
+*   `ReferenceFrame3d.from_lookat(observer, target, up)`: Build a frame from any camera perspective (with `+z` as the view axis).
+
 
 ### Transformations
 
