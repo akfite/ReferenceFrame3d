@@ -23,27 +23,28 @@ function demo_02_ReferenceFrame3d()
 
     % create all our coordinate systems up-front (relative to one another)
     base = ReferenceFrame3d(eye(3));
-    body = ReferenceFrame3d(eye(3), [5 0 0]); % fixed to the base
+    model = ReferenceFrame3d(eye(3), [5 0 0]);
 
     % create the hgtransforms and nothing else
-    frames = [base, body];
+    frames = [base, model];
     frames.hgtransform(ax);
 
     % attach the f22 model to the body frame -- note that for this to work right,
     % the vertices need to be defined with "forward" = x, "port" = y, "up" = z
     load('rf3d_demo_f22.mat'); %#ok<*LOAD>
     patch('faces', fv.faces, 'vertices', fv.vertices, ...
-        'Parent', body.hgtransform(), ...
+        'Parent', model.hgtransform(), ...
         'FaceColor', 0.5*[1 1 1], ...
         'LineStyle', 'none', ...
         'Clipping','off');
     camlight(ax);
 
-    % make it appear in a banked turn
-    body.rotate_eulerd(90, 30, 5);
+    % make it appear in a banked turn (if the order of roll/pitch looks reversed,
+    % it's because the model frame is not defined w.r.t. local for this demo
+    model.rotate_eulerd(90, 30, 5);
 
     % and for debugging, we can always add back the basis vectors if we want!
-    frames.plot('LineLength',1.5,'TextLabels',true); % to debug
+    % frames.plot('LineLength',1.5,'TextLabels',true); % uncomment
 
     %% animation loop (make the f22 orbit in a circle)
     clock = tic;
