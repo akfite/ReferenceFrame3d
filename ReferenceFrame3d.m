@@ -462,6 +462,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.LineLength(1,3) double = 1
                 opts.Arrowheads(1,3) matlab.lang.OnOffSwitchState = true
                 opts.TextLabels(1,3) matlab.lang.OnOffSwitchState = false
+                opts.Disable(1,1) logical = false % delete and return early
             end
 
             % create the transforms (if they don't already exist)
@@ -478,6 +479,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     
                 % we may wish to plot other things to the reference frame transform,
                 % so let's organize the basis vector data under its own group
+                delete(objs(i).h_plot_group);
+                if opts.Disable, continue; end
                 objs(i).h_plot_group = hggroup('Parent', parent, 'Tag', 'RF3D_BASIS_GROUP');
     
                 if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
