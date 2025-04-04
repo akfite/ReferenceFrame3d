@@ -172,6 +172,79 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj = ReferenceFrame3d(dcm, observer);
         end
 
+        function obj = ecef2ned(lat, lon, alt, angleunit)
+            %ECEF2NED Transform from ECEF to local-level North-East-Down frame.
+            arguments
+                lat(1,1) double % degrees
+                lon(1,1) double % degrees
+                alt(1,1) double = 0 % meters w.r.t. WGS84 ellipsoid
+                angleunit(1,1) string = "degrees"
+            end
+
+            angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
+
+            if contains(angleunit,"deg")
+                lat = lat * pi/180;
+                lon = lon * pi/180;
+            end
+
+            slat = sin(lat);
+            clat = cos(lat);
+            slon = sin(lon);
+            clon = cos(lon);
+            
+            C_E2L(3,3) = -slat; % pre-allocates matrix
+            C_E2L(3,1) = -clat * clon;
+            C_E2L(3,2) = -clat * slon;
+
+            C_E2L(1,1) = -slat * clon;
+            C_E2L(1,2) = -slat * slon;
+            C_E2L(1,3) = clat;
+            
+            C_E2L(2,1) = -slon;
+            C_E2L(2,2) = clon;
+
+            % convert geodetic position to ECEF to set the origin
+            pos_ecef = local_lla2ecef();
+            obj = ReferenceFrame3d(C_E2L, pos_ecef);
+
+            function pos_ecef = local_lla2ecef()
+                %LOCAL_LLA2ECEF Helper function to convert geodetic coordinates to ECEF.
+                a = 6378137.0;          % WGS84 semi-major axis (equatorial radius) in meters
+                f = 1/298.257223563;    % Flattening
+                b = a*(1-f);            % Semi-minor axis (polar radius)
+                e2 = 1 - (b^2)/(a^2);   % Square of eccentricity
+                
+                % calculate radius of curvature in the prime vertical
+                N = a / sqrt(1 - e2 * slat^2);
+                
+                % calculate ECEF coordinates
+                x = (N + alt) * clat * clon;
+                y = (N + alt) * clat * slon;
+                z = (N * (1 - e2) + alt) * slat;
+                
+                pos_ecef = [x y z];
+            end
+        end
+
+        function obj = ecef2enu(lat, lon, alt, angleunit)
+            %ECEF2ENU Transform from ECEF to local-level East-North-Up frame.
+            arguments
+                lat(1,1) double % degrees
+                lon(1,1) double % degrees
+                alt(1,1) double = 0 % meters w.r.t. WGS84 ellipsoid
+                angleunit(1,1) string = "deg"
+            end
+
+            obj = ReferenceFrame3d.ecef2ned(lat, lon, alt, angleunit);
+            obj.rotate_dcm(...
+                [ ...
+                    0 1 0
+                    1 0 0
+                    0 0 -1
+                ]);
+        end
+
         function validate_transform(T)
             %VALIDATE_TRANSFORM Check that the transform makes sense as configured.
             validateattributes(T, ...

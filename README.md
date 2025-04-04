@@ -125,6 +125,8 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 *   `ReferenceFrame3d.from_eulerd(yaw, pitch, roll, origin)`: Build a frame from an euler zyx sequence, in degrees.
 *   `ReferenceFrame3d.from_campos(ax)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
 *   `ReferenceFrame3d.from_observer_target(observer, target, up)`: Build a frame from any camera perspective (with `+z` as the view axis).
+*   `ReferenceFrame3d.ecef2ned(lat, lon, alt, angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level North-East-Down frame.
+*   `ReferenceFrame3d.ecef2enu(lat, lon, alt, angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level East-North-Up frame.
 
 
 ### Transformations
