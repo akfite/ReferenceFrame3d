@@ -137,7 +137,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 roll(1,1) double
                 origin(1,3) double = [0 0 0]
             end
-            
+
             obj = ReferenceFrame3d(eye(3), origin);
             obj.rotate_eulerd(yaw, pitch, roll);
         end
@@ -310,6 +310,12 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
         function this = rotate_euler(this, yaw, pitch, roll)
             %ROTATE_EULER Rotate with an euler sequence (zyx)
+            arguments
+                this(1,1) ReferenceFrame3d
+                yaw(1,1) double
+                pitch(1,1) double
+                roll(1,1) double
+            end
             cy = cos(yaw);
             sy = sin(yaw);
             cp = cos(pitch);
@@ -346,6 +352,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
         function this = inv(this)
             %INV Inverse of the transform.
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             R_inv = this.R'; % transpose = inverse for a DCM by definition
             t_inv = -R_inv * this.origin;
             this.T = [R_inv, t_inv; 0 0 0 1];
@@ -440,6 +449,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
         function [yaw, pitch, roll] = as_euler(this)
             %AS_EULER Express as euler angles (zyx sequence).
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             dcm = this.R;
             yaw = atan2(dcm(1,2,:), dcm(1,1,:));
             pitch = asin(-dcm(1,3,:));
@@ -448,6 +460,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
         function [yaw, pitch, roll] = as_eulerd(this)
             %AS_EULERD Express as euler angles (zyx sequence), in degrees.
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             [yaw, pitch, roll] = as_euler(this);
             yaw = yaw * 180/pi;
             pitch = pitch * 180/pi;
@@ -462,16 +477,25 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     methods
         function tform = se3(this)
             %SE3 Convert to an SE3 object.
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             tform = se3(cat(3, this.T));
         end
 
         function rot = so3(this)
             %SO3 Convert to an SO3 object.
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             rot = so3(cat(3, this.R));
         end
 
         function q = quaternion(this)
             %QUATERNION Convert to a quaternion object.
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             q = quaternion(cat(3, this.R));
         end
     end
@@ -480,16 +504,26 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     methods
         function new = mtimes(this, other)
             %MTIMES Matrix multiplication.
+            arguments
+                this(1,1) ReferenceFrame3d
+                other(1,1) ReferenceFrame3d
+            end
             new = ReferenceFrame3d(this.T * other.T);
         end
 
         function this = ctranspose(this)
             %CTRANSPOSE Complex conjugate transpose (rotation component only).
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             transpose(this);
         end
 
         function this = transpose(this)
             %TRANSPOSE Transpose (rotation component only).
+            arguments
+                this(1,1) ReferenceFrame3d
+            end
             this.T(1:3,1:3) = this.T(1:3,1:3).';
         end
     end
@@ -498,6 +532,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     methods (Sealed)
         function ax = show(this)
             %SHOW Plot everything in a new, dedicated figure.
+            arguments
+                this(:,1) ReferenceFrame3d
+            end
             hfig = figure;
             ax = axes('parent', hfig);
             grid(ax, 'on');
@@ -817,6 +854,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
         function update_hgtransform(objs)
             %UPDATE_HGTRANSFORM Update the graphics transform to match the object state.
+            arguments
+                objs(:,1) ReferenceFrame3d
+            end
             for i = 1:numel(objs)
                 if isempty(objs(i).h_transform) || ~isvalid(objs(i).h_transform)
                     continue
@@ -827,6 +867,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
         function clear(objs)
             %CLEAR Delete all graphics objects.
+            arguments
+                objs(:,1) ReferenceFrame3d
+            end
             for i = 1:numel(objs)
                 delete(objs(i).h_transform);
                 objs(i).h_transform = matlab.graphics.primitive.Transform.empty;
