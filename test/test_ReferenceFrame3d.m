@@ -11,5 +11,3 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
     end
 
 end
-
-

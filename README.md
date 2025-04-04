@@ -34,9 +34,11 @@ frame.show()
 Create a `robot` reference frame relative to the `world`.
 ```matlab
 world = ReferenceFrame3d(eye(3), [0 0 0]);
+
 robot = ReferenceFrame3d(); % equivalent to above
 robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
 robot.rotate_eulerd(45, 0, 0); % turn 45 degrees (yaw)
+% robot = ReferenceFrame3d.from_eulerd(45, 0, 0, [0.5 1 0.5]); % one-line version
 ```
 
 Transform a vector (`[1 1 0]`--a point in space) from the local frame of the robot to the world frame.
@@ -119,6 +121,8 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 #### Static Constructors (Utility)
 *   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
 *   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
+*   `ReferenceFrame3d.from_euler(yaw, pitch, roll, origin)`: Build a frame from an euler zyx sequence.
+*   `ReferenceFrame3d.from_eulerd(yaw, pitch, roll, origin)`: Build a frame from an euler zyx sequence, in degrees.
 *   `ReferenceFrame3d.from_campos(ax)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
 *   `ReferenceFrame3d.from_observer_target(observer, target, up)`: Build a frame from any camera perspective (with `+z` as the view axis).
 

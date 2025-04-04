@@ -116,6 +116,30 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj = ReferenceFrame3d(dcm, origin);
         end
 
+        function obj = from_euler(yaw, pitch, roll, origin)
+            %FROM_EULER Create a transform from zyx euler sequence.
+            arguments
+                yaw(1,1) double
+                pitch(1,1) double
+                roll(1,1) double
+                origin(1,3) double = [0 0 0]
+            end
+            obj = ReferenceFrame3d(eye(3), origin);
+            obj.rotate_euler(yaw, pitch, roll);
+        end
+
+        function obj = from_eulerd(yaw, pitch, roll, origin)
+            %FROM_EULERD Create a transform from zyx euler sequence, in degrees.
+            arguments
+                yaw(1,1) double
+                pitch(1,1) double
+                roll(1,1) double
+                origin(1,3) double = [0 0 0]
+            end
+            obj = ReferenceFrame3d(eye(3), origin);
+            obj.rotate_eulerd(yaw, pitch, roll);
+        end
+
         function obj = from_campos(ax)
             %FROM_CAMPOS Create a transform for the current camera perspective.
             arguments
