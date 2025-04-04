@@ -171,7 +171,7 @@ These methods are subject to the availability of the relevant toolbox on your ma
 
 *   `copy()`: Create a deep copy of the object, including handle graphics (if applicable)
     - `ReferenceFrame3d(other_frame)` to shallow copy
-*   `intersect_plane()`: Calculate ray-plane intersection.
+*   `intersect_plane(observer, ray, opts...)`: Calculate ray-plane intersection.
 
 ## License
 
