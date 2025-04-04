@@ -161,7 +161,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function obj = ecef2ned(lat, lon, alt, angleunit)
-            %ECEF2NED Transform from ECEF to local-level North-East-Down frame.
+            %ECEF2NED Local-level North-East-Down frame w.r.t. ECEF.
             arguments
                 lat(1,1) double % degrees
                 lon(1,1) double % degrees
@@ -216,7 +216,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function obj = ecef2enu(lat, lon, alt, angleunit)
-            %ECEF2ENU Transform from ECEF to local-level East-North-Up frame.
+            %ECEF2ENU Local-level East-North-Up frame w.r.t. ECEF.
             arguments
                 lat(1,1) double % degrees
                 lon(1,1) double % degrees
