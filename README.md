@@ -138,7 +138,6 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 *   `rotate_euler(y, p, r, angleunit)`: Apply incremental ZYX Euler rotation.
 *   `compose(frame1, frame2, ...)`: Compose a sequence of frames.
 *   `mtimes(other)` or `*`: Overload for composition.
-*   `transpose()` or `'`: Overload for transpose (rotation component only).
 *   `inv()`: Compute inverse transformation.
 
 ### Numeric Representations

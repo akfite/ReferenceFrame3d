@@ -576,22 +576,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
             new = ReferenceFrame3d(this.T * other.T);
         end
-
-        function this = ctranspose(this)
-            %CTRANSPOSE Complex conjugate transpose (rotation component only).
-            arguments
-                this(1,1) ReferenceFrame3d
-            end
-            transpose(this);
-        end
-
-        function this = transpose(this)
-            %TRANSPOSE Transpose (rotation component only).
-            arguments
-                this(1,1) ReferenceFrame3d
-            end
-            this.T(1:3,1:3) = this.T(1:3,1:3).';
-        end
     end
 
     %% Graphics
