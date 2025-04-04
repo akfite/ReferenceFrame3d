@@ -138,14 +138,15 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 *   `rotate_eulerd(y, p, r)`: Apply incremental ZYX Euler rotation (degrees).
 *   `compose(frame1, frame2, ...)`: Compose a sequence of frames.
 *   `mtimes(other)` or `*`: Overload for composition.
+*   `transpose()` or `'`: Overload for transpose (rotation component only).
 *   `inv()`: Compute inverse transformation.
 
 ### Numeric Representations
 
 *   `as_transform()`: Return 4x4 `T`.
 *   `as_dcm()`: Return 3x3 `R`.
-*   `as_euler()`: Return `[roll, pitch, yaw]` in radians.
-*   `as_eulerd()`: Return `[roll, pitch, yaw]` in degrees.
+*   `as_euler()`: Return `[yaw, pitch, roll]` in radians.
+*   `as_eulerd()`: Return `[yaw, pitch, roll]` in degrees.
 
 ### Toolbox Support (convert to/from MATLAB's built-in types)
 
