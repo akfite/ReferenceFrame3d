@@ -124,6 +124,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 roll(1,1) double
                 origin(1,3) double = [0 0 0]
             end
+
             obj = ReferenceFrame3d(eye(3), origin);
             obj.rotate_euler(yaw, pitch, roll);
         end
@@ -136,6 +137,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 roll(1,1) double
                 origin(1,3) double = [0 0 0]
             end
+            
             obj = ReferenceFrame3d(eye(3), origin);
             obj.rotate_eulerd(yaw, pitch, roll);
         end
