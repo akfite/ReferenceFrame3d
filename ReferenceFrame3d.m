@@ -128,8 +128,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 camup(ax));
         end
 
-        function obj = from_lookat(observer, target, up)
-            %FROM_LOOKAT Create a transform for an observer's perspective.
+        function obj = from_observer_target(observer, target, up)
+            %FROM_OBSERVER_TARGET Create a transform for an observer's perspective.
             arguments
                 observer(1,3) double % position
                 target(1,3) double % position
