@@ -41,7 +41,7 @@ function demo_02_ReferenceFrame3d()
 
     % make it appear in a banked turn (if the order of roll/pitch looks reversed,
     % it's because the model frame is not defined w.r.t. local for this demo
-    model.rotate_eulerd(90, 30, 5);
+    model.rotate_euler(90, 30, 5, "degrees");
 
     % and for debugging, we can always add back the basis vectors if we want!
     % frames.plot('LineLength',1.5,'TextLabels',true); % uncomment
@@ -63,7 +63,7 @@ function demo_02_ReferenceFrame3d()
 
         % base frame rotates at 30 deg/s around the z axis
         yaw = 30 * elapsed;
-        base.rotate_eulerd(yaw, 0, 0);
+        base.rotate_euler(yaw, 0, 0, "deg");
 
         drawnow
     end

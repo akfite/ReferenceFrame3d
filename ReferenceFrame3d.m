@@ -116,30 +116,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj = ReferenceFrame3d(dcm, origin);
         end
 
-        function obj = from_euler(yaw, pitch, roll, origin)
+        function obj = from_euler(yaw, pitch, roll, origin, angleunit)
             %FROM_EULER Create a transform from zyx euler sequence.
             arguments
                 yaw(1,1) double
                 pitch(1,1) double
                 roll(1,1) double
                 origin(1,3) double = [0 0 0]
+                angleunit(1,1) string = "deg"
             end
 
             obj = ReferenceFrame3d(eye(3), origin);
-            obj.rotate_euler(yaw, pitch, roll);
-        end
-
-        function obj = from_eulerd(yaw, pitch, roll, origin)
-            %FROM_EULERD Create a transform from zyx euler sequence, in degrees.
-            arguments
-                yaw(1,1) double
-                pitch(1,1) double
-                roll(1,1) double
-                origin(1,3) double = [0 0 0]
-            end
-
-            obj = ReferenceFrame3d(eye(3), origin);
-            obj.rotate_eulerd(yaw, pitch, roll);
+            obj.rotate_euler(yaw, pitch, roll, angleunit);
         end
 
         function obj = from_campos(ax)
@@ -178,7 +166,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 lat(1,1) double % degrees
                 lon(1,1) double % degrees
                 alt(1,1) double = 0 % meters w.r.t. WGS84 ellipsoid
-                angleunit(1,1) string = "degrees"
+                angleunit(1,1) string = "deg"
             end
 
             angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
@@ -381,14 +369,24 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             this.T = this.T * T;
         end
 
-        function this = rotate_euler(this, yaw, pitch, roll)
+        function this = rotate_euler(this, yaw, pitch, roll, angleunit)
             %ROTATE_EULER Rotate with an euler sequence (zyx)
             arguments
                 this(1,1) ReferenceFrame3d
                 yaw(1,1) double
                 pitch(1,1) double
                 roll(1,1) double
+                angleunit(1,1) string = "deg"
             end
+
+            angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
+
+            if contains(angleunit,"deg")
+                yaw = yaw * pi/180;
+                pitch = pitch * pi/180;
+                roll = roll * pi/180;
+            end
+
             cy = cos(yaw);
             sy = sin(yaw);
             cp = cos(pitch);
@@ -403,11 +401,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                               0,                  0,        0,       1];
 
             this.T = this.T * T;
-        end
-
-        function this = rotate_eulerd(this, yaw, pitch, roll)
-            %ROTATE_EULERD Rotate with an euler sequence (zyx), in degrees
-            this.rotate_euler(yaw * pi/180, pitch * pi/180, roll * pi/180);
         end
 
         function new = compose(this)
@@ -520,26 +513,26 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             R = this.R;
         end
 
-        function [yaw, pitch, roll] = as_euler(this)
+        function [yaw, pitch, roll] = as_euler(this, angleunit)
             %AS_EULER Express as euler angles (zyx sequence).
             arguments
                 this(1,1) ReferenceFrame3d
+                angleunit(1,1) string = "deg"
             end
-            dcm = this.R;
-            yaw = atan2(dcm(1,2,:), dcm(1,1,:));
-            pitch = asin(-dcm(1,3,:));
-            roll = atan2(dcm(2,3,:), dcm(3,3,:));
-        end
 
-        function [yaw, pitch, roll] = as_eulerd(this)
-            %AS_EULERD Express as euler angles (zyx sequence), in degrees.
-            arguments
-                this(1,1) ReferenceFrame3d
+            angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
+
+            dcm = this.R;
+
+            if contains(angleunit,"deg")
+                yaw = atan2d(dcm(1,2,:), dcm(1,1,:));
+                pitch = asind(-dcm(1,3,:));
+                roll = atan2d(dcm(2,3,:), dcm(3,3,:));
+            else
+                yaw = atan2(dcm(1,2,:), dcm(1,1,:));
+                pitch = asin(-dcm(1,3,:));
+                roll = atan2(dcm(2,3,:), dcm(3,3,:));
             end
-            [yaw, pitch, roll] = as_euler(this);
-            yaw = yaw * 180/pi;
-            pitch = pitch * 180/pi;
-            roll = roll * 180/pi;
         end
     end
 
@@ -1020,7 +1013,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 frame = compose(this);
             end
 
-            [y,p,r] = frame.as_eulerd();
+            [y,p,r] = frame.as_euler("deg");
 
             footer = sprintf(...
                 ['%s' ...

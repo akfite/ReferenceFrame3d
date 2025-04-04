@@ -37,8 +37,8 @@ world = ReferenceFrame3d(eye(3), [0 0 0]);
 
 robot = ReferenceFrame3d(); % equivalent to above
 robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
-robot.rotate_eulerd(45, 0, 0); % turn 45 degrees (yaw)
-% robot = ReferenceFrame3d.from_eulerd(45, 0, 0, [0.5 1 0.5]); % one-line version
+robot.rotate_euler(45, 0, 0, "degrees"); % turn 45 degrees (yaw)
+% robot = ReferenceFrame3d.from_euler(45, 0, 0, [0.5 1 0.5], "degrees"); % one-line version
 ```
 
 Transform a vector (`[1 1 0]`--a point in space) from the local frame of the robot to the world frame.
@@ -121,8 +121,7 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 #### Static Constructors (Utility)
 *   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
 *   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
-*   `ReferenceFrame3d.from_euler(yaw, pitch, roll, origin)`: Build a frame from an euler zyx sequence.
-*   `ReferenceFrame3d.from_eulerd(yaw, pitch, roll, origin)`: Build a frame from an euler zyx sequence, in degrees.
+*   `ReferenceFrame3d.from_euler(yaw, pitch, roll, origin, angleunit)`: Build a frame from an euler zyx sequence.
 *   `ReferenceFrame3d.from_campos(ax)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
 *   `ReferenceFrame3d.from_observer_target(observer, target, up)`: Build a frame from any camera perspective (with `+z` as the view axis).
 *   `ReferenceFrame3d.ecef2ned(lat, lon, alt, angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level North-East-Down frame.
@@ -136,8 +135,7 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 *   `translate(dxyz)`: Apply incremental translation.
 *   `reposition(new_pos)`: Set absolute origin.
 *   `rotate_dcm(dcm)`: Apply incremental rotation (3x3 DCM).
-*   `rotate_euler(y, p, r)`: Apply incremental ZYX Euler rotation (radians).
-*   `rotate_eulerd(y, p, r)`: Apply incremental ZYX Euler rotation (degrees).
+*   `rotate_euler(y, p, r, angleunit)`: Apply incremental ZYX Euler rotation.
 *   `compose(frame1, frame2, ...)`: Compose a sequence of frames.
 *   `mtimes(other)` or `*`: Overload for composition.
 *   `transpose()` or `'`: Overload for transpose (rotation component only).
@@ -147,8 +145,7 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 
 *   `as_transform()`: Return 4x4 `T`.
 *   `as_dcm()`: Return 3x3 `R`.
-*   `as_euler()`: Return `[yaw, pitch, roll]` in radians.
-*   `as_eulerd()`: Return `[yaw, pitch, roll]` in degrees.
+*   `as_euler(angleunit)`: Return `[yaw, pitch, roll]`.
 
 ### Toolbox Support (convert to/from MATLAB's built-in types)
 
