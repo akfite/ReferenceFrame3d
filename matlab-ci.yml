@@ -1,0 +1,56 @@
+name: MATLAB CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events but only for the main/master branch
+  push:
+    branches: [ main, master ] # Adjust if your main branch has a different name
+
+  # Triggers the workflow on pull request events targeting the main/master branch
+  pull_request:
+    branches: [ main, master ] # Adjust if your main branch has a different name
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This job runs the MATLAB tests
+  run-matlab-tests:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest # Linux runner is generally fastest/cheapest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # 1. Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Check out repository code
+        uses: actions/checkout@v4 # Use the latest major version
+
+      # 2. Sets up MATLAB on the runner
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2 # Use the latest major version
+        # No specific version needed usually defaults to latest, add 'with: release: R2023b' etc. if needed
+
+      # 3. Runs the MATLAB unit tests
+      - name: Run MATLAB Tests
+        uses: matlab-actions/run-tests@v2 # Use the latest major version
+        with:
+          # Specify the source folder containing your class and test files
+          # If tests are in a 'test' subfolder and class in 'src' or root:
+          source-folder: . # Assumes class and test file are accessible from the root
+          # If your tests are in a dedicated 'test' folder:
+          # test-results-junit: test-results/results.xml # Optional: define output path
+          # select: 'test' # Runs all tests in the 'test' folder
+
+          # --- OR ---
+          # If you prefer running a specific script or function call:
+          # runner: matlab -batch "results = runtests('ReferenceFrame3dTest.m'); assert(~any([results.Failed]), 'Test failures detected.');"
+
+# Optional: If using run-tests action, it produces artifacts by default.
+# If using matlab -batch, you might want to upload results manually:
+#      - name: Upload Test Artifacts (JUnit)
+#        if: always() # Run this step even if the previous step failed
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: matlab-test-results
+#          path: test-results/results.xml # Match path used in runtests command if using matlab -batch
