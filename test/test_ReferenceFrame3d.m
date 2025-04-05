@@ -334,12 +334,12 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
             lat_rad = deg2rad(lat_deg); lon_rad = deg2rad(lon_deg);
 
             % Just checking execution and basic properties for rad input
-            frame_ned_rad = ReferenceFrame3d.ecef2ned(lat_rad, lon_rad, alt_m, 'rad');
+            frame_ned_rad = ReferenceFrame3d.ecef2ned([lat_rad, lon_rad, alt_m], 'rad');
             testCase.verifyEqual(det(frame_ned_rad.R), 1, 'AbsTol', testCase.Tol);
             testCase.verifyEqual(frame_ned_rad.R * frame_ned_rad.R', eye(3), 'AbsTol', testCase.Tol);
             testCase.verifyFalse(isequal(frame_ned_rad.origin, [0;0;0])); % Origin should be non-zero
 
-            frame_enu_rad = ReferenceFrame3d.ecef2enu(lat_rad, lon_rad, alt_m, 'rad');
+            frame_enu_rad = ReferenceFrame3d.ecef2enu([lat_rad, lon_rad, alt_m], 'rad');
             testCase.verifyEqual(det(frame_enu_rad.R), 1, 'AbsTol', testCase.Tol);
             testCase.verifyEqual(frame_enu_rad.R * frame_enu_rad.R', eye(3), 'AbsTol', testCase.Tol);
             testCase.verifyFalse(isequal(frame_enu_rad.origin, [0;0;0])); % Origin should be non-zero
