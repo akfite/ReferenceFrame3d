@@ -458,6 +458,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             if abs(denominator) < opts.Tol
                 p = [nan nan nan];
+                dist = nan;
                 return
             end
 
