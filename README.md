@@ -37,8 +37,8 @@ world = ReferenceFrame3d(eye(3), [0 0 0]);
 
 robot = ReferenceFrame3d(); % equivalent to above
 robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
-robot.rotate_euler(45, 0, 0, "degrees"); % turn 45 degrees (yaw)
-% robot = ReferenceFrame3d.from_euler(45, 0, 0, [0.5 1 0.5], "degrees"); % one-line version
+robot.rotate_euler([-45, 0, 0]); % yaw
+% robot = ReferenceFrame3d.from_euler([-45, 0, 0], [0.5 1 0.5]); % one-line version
 ```
 
 Transform a vector (`[1 1 0]`--a point in space) from the local frame of the robot to the world frame.

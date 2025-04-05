@@ -116,18 +116,17 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj = ReferenceFrame3d(dcm, origin);
         end
 
-        function obj = from_euler(yaw, pitch, roll, origin, angleunit)
+        function obj = from_euler(angles, origin, opts)
             %FROM_EULER Create a transform from zyx euler sequence.
             arguments
-                yaw(1,1) double
-                pitch(1,1) double
-                roll(1,1) double
+                angles(1,3) double
                 origin(1,3) double = [0 0 0]
-                angleunit(1,1) string = "deg"
+                opts.Sequence(1,3) char = 'zyx'
+                opts.Units(1,1) string = "deg"
             end
 
             obj = ReferenceFrame3d(eye(3), origin);
-            obj.rotate_euler(yaw, pitch, roll, angleunit);
+            obj.rotate_euler(angles, 'Units', opts.Units, 'Sequence', opts.Sequence);
         end
 
         function obj = from_campos(ax)
@@ -199,9 +198,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             function pos_ecef = local_lla2ecef()
                 %LOCAL_LLA2ECEF Helper function to convert geodetic coordinates to ECEF.
                 a = 6378137.0;          % WGS84 semi-major axis (equatorial radius) in meters
-                f = 1/298.257223563;    % Flattening
-                b = a*(1-f);            % Semi-minor axis (polar radius)
-                e2 = 1 - (b^2)/(a^2);   % Square of eccentricity
+                f = 1/298.257223563;    % flattening
+                b = a*(1-f);            % semi-minor axis (polar radius)
+                e2 = 1 - (b^2)/(a^2);   % square of eccentricity
                 
                 % calculate radius of curvature in the prime vertical
                 N = a / sqrt(1 - e2 * slat^2);
@@ -340,7 +339,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function this = translate(this, dxyz)
+        function translate(this, dxyz)
             %TRANSLATE Shift the origin by an incremental amount.
             arguments
                 this(1,1) ReferenceFrame3d
@@ -349,7 +348,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             this.T(1:3,4) = this.T(1:3,4) + dxyz;
         end
 
-        function this = reposition(this, new_pos)
+        function reposition(this, new_pos)
             %REPOSITION Set a new origin.
             arguments
                 this(1,1) ReferenceFrame3d
@@ -358,7 +357,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             this.T(1:3,4) = new_pos;
         end
         
-        function this = rotate_dcm(this, dcm)
+        function rotate_dcm(this, dcm)
             %ROTATE_DCM Rotate with a 3x3 Direction Cosine Matrix (DCM).
             arguments
                 this(1,1) ReferenceFrame3d
@@ -369,36 +368,26 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             this.T = this.T * T;
         end
 
-        function this = rotate_euler(this, yaw, pitch, roll, angleunit)
-            %ROTATE_EULER Rotate with an euler sequence (zyx)
+        function rotate_euler(this, angles, opts)
+            %ROTATE_EULER Rotate with an euler sequence.
             arguments
                 this(1,1) ReferenceFrame3d
-                yaw(1,1) double
-                pitch(1,1) double
-                roll(1,1) double
-                angleunit(1,1) string = "deg"
+                angles(1,3) double
+                opts.Sequence(1,3) char = 'zyx'
+                opts.Units(1,1) string = "deg"
             end
 
-            angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
+            units = validatestring(opts.Units, ["deg","degrees","rad","radians"]);
+            sequence = validatestring(opts.Sequence, {'zyx','zxy','yzx','yxz','xzy','xyz'});
 
-            if contains(angleunit,"deg")
-                yaw = yaw * pi/180;
-                pitch = pitch * pi/180;
-                roll = roll * pi/180;
+            if contains(units,"deg")
+                angles = angles * pi/180;
             end
 
-            cy = cos(yaw);
-            sy = sin(yaw);
-            cp = cos(pitch);
-            sp = sin(pitch);
-            cr = cos(roll);
-            sr = sin(roll);
-    
-            T = [...
-                          cy*cp,              sy*cp,      -sp,       0;
-                -sy*cr+cy*sp*sr,     cy*cr+sy*sp*sr,    cp*sr,       0;
-                 sy*sr+cy*sp*cr,    -cy*sr+sy*sp*cr,    cp*cr,       0
-                              0,                  0,        0,       1];
+            T = makehgtform(...
+                [sequence(1) 'rotate'], angles(1), ...
+                [sequence(2) 'rotate'], angles(2), ...
+                [sequence(3) 'rotate'], angles(3));
 
             this.T = this.T * T;
         end
@@ -416,14 +405,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             new = ReferenceFrame3d(T_new);
         end
 
-        function this = inv(this)
+        function new = inv(this)
             %INV Inverse of the transform.
             arguments
                 this(1,1) ReferenceFrame3d
             end
             R_inv = this.R'; % transpose = inverse for a DCM by definition
             t_inv = -R_inv * this.origin;
-            this.T = [R_inv, t_inv; 0 0 0 1];
+            new = ReferenceFrame3d([R_inv, t_inv; 0 0 0 1]);
         end
     end
 
@@ -522,16 +511,36 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
 
-            dcm = this.R;
+            R = this.R';
 
-            if contains(angleunit,"deg")
-                yaw = atan2d(dcm(1,2,:), dcm(1,1,:));
-                pitch = asind(-dcm(1,3,:));
-                roll = atan2d(dcm(2,3,:), dcm(3,3,:));
+            r11 = R(1,1); r12 = R(1,2); r13 = R(1,3);
+            r21 = R(2,1); r22 = R(2,2); r23 = R(2,3);
+            r33 = R(3,3);
+            
+            % check for gimbal lock (pitch = ±90°)
+            if abs(r13) > 0.99999
+                % in gimbal lock, yaw and roll are not uniquely determined, so
+                % we set yaw to 0 and calculate roll
+                yaw = 0;  % set yaw arbitrarily to 0
+                
+                if r13 < 0 % pitch = -90°
+                    pitch = -pi/2;
+                    roll = atan2(r21, r22);
+                else % pitch = 90°
+                    pitch = pi/2;
+                    roll = -atan2(r21, r22);
+                end
             else
-                yaw = atan2(dcm(1,2,:), dcm(1,1,:));
-                pitch = asin(-dcm(1,3,:));
-                roll = atan2(dcm(2,3,:), dcm(3,3,:));
+                % normal case - no gimbal lock
+                pitch = asin(-r13);
+                yaw = atan2(r12, r11);
+                roll = atan2(r23, r33);
+            end
+
+            if contains(angleunit, "deg")
+                pitch = pitch * 180/pi;
+                yaw = yaw * 180/pi;
+                roll = roll * 180/pi;
             end
         end
     end
