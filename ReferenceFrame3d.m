@@ -159,16 +159,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj = ReferenceFrame3d(dcm, observer);
         end
 
-        function obj = ecef2ned(lat, lon, alt, angleunit)
+        function obj = ecef2ned(lla, angleunit)
             %ECEF2NED Local-level North-East-Down frame w.r.t. ECEF.
             arguments
-                lat(1,1) double % degrees
-                lon(1,1) double % degrees
-                alt(1,1) double = 0 % meters w.r.t. WGS84 ellipsoid
+                lla(1,3) double % alt w.r.t. the WGS84 ellipsoid, meters
                 angleunit(1,1) string = "deg"
             end
 
             angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
+
+            lat = lla(:,1);
+            lon = lla(:,2);
+            alt = lla(:,3);
 
             if contains(angleunit,"deg")
                 lat = lat * pi/180;
@@ -190,6 +192,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             
             C_E2L(2,1) = -slon;
             C_E2L(2,2) = clon;
+
+            C_E2L = C_E2L';
 
             % convert geodetic position to ECEF to set the origin
             pos_ecef = local_lla2ecef();
@@ -214,16 +218,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function obj = ecef2enu(lat, lon, alt, angleunit)
+        function obj = ecef2enu(lla, angleunit)
             %ECEF2ENU Local-level East-North-Up frame w.r.t. ECEF.
             arguments
-                lat(1,1) double % degrees
-                lon(1,1) double % degrees
-                alt(1,1) double = 0 % meters w.r.t. WGS84 ellipsoid
+                lla(1,3) double % alt w.r.t. the WGS84 ellipsoid, meters
                 angleunit(1,1) string = "deg"
             end
 
-            obj = ReferenceFrame3d.ecef2ned(lat, lon, alt, angleunit);
+            obj = ReferenceFrame3d.ecef2ned(lla, angleunit);
             obj.rotate_dcm(...
                 [ ...
                     0 1 0
