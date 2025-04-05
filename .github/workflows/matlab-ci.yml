@@ -26,4 +26,4 @@ jobs:
         uses: matlab-actions/run-tests@v2 # Use the latest major version
         with:
           source-folder: . # Assumes class and test file are accessible from the root
-          select: 'test' # Runs all tests in the 'test' folder
+          select-by-folder: 'test' # Runs all tests in the 'test' folder
