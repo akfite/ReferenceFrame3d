@@ -443,6 +443,167 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
             testCase.verifyEqual(frame.T, T_expected, 'AbsTol', testCase.Tol);
         end
 
+        function testTranslateNonFinite(testCase)
+            % Test translate with non-finite input.
+            frame = ReferenceFrame3d();
+            testCase.verifyError(@() frame.translate([NaN; 0; 0]), ?MException);
+            testCase.verifyError(@() frame.translate([Inf; 0; 0]), ?MException);
+            testCase.verifyError(@() frame.translate([0; -Inf; 0]), ?MException);
+        end
+
+        function testRepositionNonFinite(testCase)
+            % Test reposition with non-finite input.
+            frame = ReferenceFrame3d();
+            testCase.verifyError(@() frame.reposition([NaN; 0; 0]), ?MException);
+            testCase.verifyError(@() frame.reposition([Inf; 0; 0]), ?MException);
+            testCase.verifyError(@() frame.reposition([0; -Inf; 0]), ?MException);
+        end
+
+        function testRotateDCMInvalidSize(testCase)
+            % Test rotate_dcm with invalid input size.
+            frame = ReferenceFrame3d();
+            testCase.verifyError(@() frame.rotate_dcm(eye(4)), ?MException);
+            testCase.verifyError(@() frame.rotate_dcm([1;2;3]), ?MException);
+        end
+
+        function testRotateEulerInvalidUnits(testCase)
+            % Test rotate_euler with invalid units string.
+            frame = ReferenceFrame3d();
+            testCase.verifyError(@() frame.rotate_euler([10 20 30], 'Units', 'furlongs'), ...
+                ?MException);
+        end
+
+         function testRotateEulerInvalidSequence(testCase)
+            % Test rotate_euler with invalid sequence string.
+            frame = ReferenceFrame3d();
+            testCase.verifyError(@() frame.rotate_euler([10 20 30], 'Sequence', 'abc'), ...
+                ?MException);
+         end
+
+        function testLocalToBaseMultipleOutputs(testCase)
+            % Test local2base with multiple output arguments (x, y, z).
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            local_pts_nx3 = [1 1 1; 0 0 0; -1 2 -3];
+
+            base_pts_expected = (R_arb * local_pts_nx3' + origin_arb)'; % Calculate expected
+
+            % Call with multiple outputs
+            [bx, by, bz] = frame.local2base(local_pts_nx3);
+            base_pts_actual_xyz = [bx(:), by(:), bz(:)]; % Ensure column vectors
+
+            testCase.verifyEqual(base_pts_actual_xyz, base_pts_expected, 'AbsTol', testCase.Tol);
+
+            % Test with single point split output
+             local_pt = [4;5;6];
+             base_pt_expected_single = R_arb*local_pt + origin_arb;
+             [bx_s, by_s, bz_s] = frame.local2base(local_pt'); % Input row
+             testCase.verifyEqual([bx_s; by_s; bz_s], base_pt_expected_single, 'AbsTol', testCase.Tol);
+        end
+
+         function testBaseToLocalMultipleOutputs(testCase)
+            % Test base2local with multiple output arguments (x, y, z).
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            base_pts_nx3 = [2 3 4; 1 1 1; 5 -1 0];
+
+            R_inv = R_arb';
+            origin_inv = -R_inv * origin_arb;
+            local_pts_expected = (R_inv * base_pts_nx3' + origin_inv)'; % Calculate expected
+
+            % Call with multiple outputs
+            [lx, ly, lz] = frame.base2local(base_pts_nx3);
+            local_pts_actual_xyz = [lx(:), ly(:), lz(:)]; % Ensure column vectors
+
+            testCase.verifyEqual(local_pts_actual_xyz, local_pts_expected, 'AbsTol', testCase.Tol);
+
+            % Test with single point split output
+             base_pt = [7;8;9];
+             local_pt_expected_single = R_inv*base_pt + origin_inv;
+             [lx_s, ly_s, lz_s] = frame.base2local(base_pt'); % Input row
+             testCase.verifyEqual([lx_s; ly_s; lz_s], local_pt_expected_single, 'AbsTol', testCase.Tol);
+        end
+
+        function testLocalToBaseInvalidArgs(testCase)
+            % Test local2base with incorrect number of arguments.
+            frame = ReferenceFrame3d();
+            testCase.verifyError(@() frame.local2base(1, 2), ?MException); % Should trigger nargin error
+        end
+
+        function testBaseToLocalInvalidArgs(testCase)
+            % Test base2local with incorrect number of arguments.
+            frame = ReferenceFrame3d();
+            testCase.verifyError(@() frame.base2local(1, 2), ?MException); % Should trigger nargin error
+        end
+
+        function testComposeSingleFrame(testCase)
+             % Test compose with just one frame input.
+             [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+             frame1 = ReferenceFrame3d(R_arb, origin_arb');
+
+             composed_frame = compose(frame1);
+
+             testCase.verifyEqual(composed_frame.T, frame1.T, 'AbsTol', testCase.Tol);
+             testCase.verifyNotSameHandle(composed_frame, frame1); % Compose should create new object
+        end
+
+        function testComposeArrayInput(testCase)
+             % Test compose when input is already an array (e.g., [f1; f2]).
+            [R1, origin1] = testCase.createArbitraryRotOrigin(10, 20, 30);
+            frame1 = ReferenceFrame3d(R1, origin1');
+            [R2, origin2] = testCase.createArbitraryRotOrigin(40, 50, 60);
+            frame2 = ReferenceFrame3d(R2, origin2');
+            [R3, origin3] = testCase.createArbitraryRotOrigin(-10, -20, -30);
+            frame3 = ReferenceFrame3d(R3, origin3');
+
+            frames_array = [frame1; frame2; frame3]; % Input is column vector
+
+            T_expected = frame1.T * frame2.T * frame3.T;
+
+            frame_composed_method = compose(frames_array); % Pass column vector directly
+
+            testCase.verifyEqual(frame_composed_method.T, T_expected, 'AbsTol', testCase.Tol);
+        end
+
+        function testLocalToBaseComposed(testCase)
+             % Test local2base called on a composed sequence (array input)
+            [R1, origin1] = testCase.createArbitraryRotOrigin(10, 20, 30);
+            frame1 = ReferenceFrame3d(R1, origin1');
+            [R2, origin2] = testCase.createArbitraryRotOrigin(40, 50, 60);
+            frame2 = ReferenceFrame3d(R2, origin2');
+
+            frames_array = [frame1; frame2]; % Column vector for compose logic
+
+            local_pt = [1; 1; 1];
+            T_composed = frame1.T * frame2.T;
+            base_pt_expected = T_composed * [local_pt; 1];
+
+            % Call local2base on the array itself
+            base_pt_actual = frames_array.local2base(local_pt');
+
+            testCase.verifyEqual(base_pt_actual', base_pt_expected(1:3), 'AbsTol', testCase.Tol);
+        end
+
+        function testBaseToLocalComposed(testCase)
+             % Test base2local called on a composed sequence (array input)
+            [R1, origin1] = testCase.createArbitraryRotOrigin(10, 20, 30);
+            frame1 = ReferenceFrame3d(R1, origin1');
+            [R2, origin2] = testCase.createArbitraryRotOrigin(40, 50, 60);
+            frame2 = ReferenceFrame3d(R2, origin2');
+
+            frames_array = [frame1; frame2]; % Column vector for compose logic
+
+            base_pt = [2; 3; 4];
+            T_composed = frame1.T * frame2.T;
+            T_inv_composed = inv(T_composed); % Use MATLAB inv for simplicity here
+            local_pt_expected = T_inv_composed * [base_pt; 1];
+
+            % Call base2local on the array itself
+            local_pt_actual = frames_array.base2local(base_pt');
+
+            testCase.verifyEqual(local_pt_actual', local_pt_expected(1:3), 'AbsTol', testCase.Tol);
+        end
+
         %% Coordinate Transformation Tests
         function testLocalToBase(testCase)
             [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
