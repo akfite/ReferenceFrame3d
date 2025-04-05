@@ -248,6 +248,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             assert(orthogonality_error < tol, ...
                 'Orthogonality is outside tolerance (R*R'' is not eye(3); %f > %f)', ...
                 orthogonality_error, tol)
+
+            assert(isequal(T(4,:), [0 0 0 1]), ...
+                'The bottom row of the transform must be [0 0 0 1]');
         end
     end
 
@@ -511,35 +514,41 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
 
+            % use R_base_to_local (transpose of the frame's R) for calculations
+            % consistent with many standard derivations.
             R = this.R';
 
             r11 = R(1,1); r12 = R(1,2); r13 = R(1,3);
             r21 = R(2,1); r22 = R(2,2); r23 = R(2,3);
             r33 = R(3,3);
-            
-            % check for gimbal lock (pitch = ±90°)
-            if abs(r13) > 0.99999
-                % in gimbal lock, yaw and roll are not uniquely determined, so
-                % we set yaw to 0 and calculate roll
-                yaw = 0;  % set yaw arbitrarily to 0
-                
-                if r13 < 0 % pitch = -90°
-                    pitch = -pi/2;
-                    roll = atan2(r21, r22);
-                else % pitch = 90°
+
+            % define a tolerance slightly less than 1 for gimbal lock check
+            gimbal_tol = 1 - 1e-9;
+
+            % check for gimbal lock (pitch = ±90°) using R'(1,3)
+            if abs(r13) > gimbal_tol
+                % in gimbal lock, yaw and roll are not uniquely determined.
+                % set yaw to 0 by convention and calculate roll accordingly.
+                yaw = 0;
+
+                if r13 < 0 % corresponds to pitch = +90°
                     pitch = pi/2;
-                    roll = -atan2(r21, r22);
+                    roll = atan2(r21, r22);
+                else % corresponds to pitch = -90°
+                    pitch = -pi/2;
+                    roll = -atan2(r21, r22); % keep based on common gimbal lock solutions
                 end
             else
                 % normal case - no gimbal lock
-                pitch = asin(-r13);
-                yaw = atan2(r12, r11);
-                roll = atan2(r23, r33);
+                pitch = asin(-r13); % pitch = asin(-R'(1,3))
+                yaw = atan2(r12, r11); % yaw = atan2(R'(1,2), R'(1,1))
+                roll = atan2(r23, r33); % roll = atan2(R'(2,3), R'(3,3))
             end
 
+            % convert to requested units
             if contains(angleunit, "deg")
-                pitch = pitch * 180/pi;
                 yaw = yaw * 180/pi;
+                pitch = pitch * 180/pi;
                 roll = roll * 180/pi;
             end
         end

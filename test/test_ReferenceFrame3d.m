@@ -1,23 +1,543 @@
 classdef test_ReferenceFrame3d < matlab.unittest.TestCase
 
-    methods (Test)
-        function constructors(this)
-            a = ReferenceFrame3d();
-            this.verifyEqual(a.T, eye(4));
-        end
-
-        function static_constructors(this)
-        end
-
-        function local2base(this)
-            a = ReferenceFrame3d();
-            this.verifyEqual(a.T, eye(4));
-
-            % test some 
-            a.rotate_euler([45 0 0]);
-            vec_out = a.local2base([1/sqrt(2) 1/sqrt(2) 0]);
-            this.verifyEqual(vec_out, [0 1 0], 'AbsTol', eps);
-        end
+    properties (Constant)
+        Tol = 1e-10 % Tolerance for floating-point comparisons
     end
 
-end
+    methods (Test)
+
+        %% Constructor and Update Tests
+        function testConstructorDefault(testCase)
+            frame = ReferenceFrame3d();
+            testCase.verifyEqual(frame.T, eye(4), 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.R, eye(3), 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.origin, [0; 0; 0], 'AbsTol', testCase.Tol);
+        end
+
+        function testConstructorTransform(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            T_arb = [R_arb, origin_arb; 0 0 0 1];
+            frame = ReferenceFrame3d(T_arb);
+            testCase.verifyEqual(frame.T, T_arb, 'AbsTol', testCase.Tol);
+        end
+
+        function testConstructorDcmOrigin(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            T_expected = [R_arb, origin_arb; 0 0 0 1];
+            frame = ReferenceFrame3d(R_arb, origin_arb'); % Constructor expects row vector origin
+            testCase.verifyEqual(frame.T, T_expected, 'AbsTol', testCase.Tol);
+        end
+
+        function testConstructorFromFrame(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            T_arb = [R_arb, origin_arb; 0 0 0 1];
+            frame1 = ReferenceFrame3d(T_arb);
+            frame2 = ReferenceFrame3d(frame1); % Should copy T, not handle
+
+            testCase.verifyEqual(frame2.T, frame1.T, 'AbsTol', testCase.Tol);
+            testCase.verifyNotSameHandle(frame1, frame2);
+        end
+
+        function testUpdateMethod(testCase)
+            frame = ReferenceFrame3d(); % Start with identity
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            T_arb = [R_arb, origin_arb; 0 0 0 1];
+
+            % Update using R and origin
+            frame.update(R_arb, origin_arb'); % Update expects row vector origin
+            testCase.verifyEqual(frame.T, T_arb, 'AbsTol', testCase.Tol);
+
+            % Update using T
+            frame.update(eye(4));
+            testCase.verifyEqual(frame.T, eye(4), 'AbsTol', testCase.Tol);
+
+            % Update using another frame
+            frame_arb = ReferenceFrame3d(T_arb);
+            frame.update(frame_arb);
+            testCase.verifyEqual(frame.T, T_arb, 'AbsTol', testCase.Tol);
+        end
+
+        function testStaticFromEuler(testCase)
+            angles_deg = [30, 45, 60]; % ZYX
+            origin_row = [1, 2, 3];
+            frame = ReferenceFrame3d.from_euler(angles_deg, origin_row, 'Sequence', 'zyx', 'Units', 'deg');
+
+            R_expected = testCase.eul2rotm_local(angles_deg, 'zyx', 'deg');
+            T_expected = [R_expected, origin_row'; 0 0 0 1];
+
+            testCase.verifyEqual(frame.T, T_expected, 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.origin, origin_row', 'AbsTol', testCase.Tol); % Check origin separately
+        end
+
+        function testStaticFromPointNormal(testCase)
+            point = [1 2 3];
+            normal = [0 1 0]; % Simple normal along y-axis
+            frame = ReferenceFrame3d.from_point_normal(point, normal);
+
+            testCase.verifyEqual(frame.origin, point', 'AbsTol', testCase.Tol);
+            % Normal should align with frame's z-axis
+            testCase.verifyEqual(frame.z, normal'/norm(normal), 'AbsTol', testCase.Tol);
+            % Verify R is orthonormal (implicitly checked by set.T, but good practice)
+            testCase.verifyEqual(frame.R * frame.R', eye(3), 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(det(frame.R), 1, 'AbsTol', testCase.Tol);
+            % Verify x, y, z form right-handed system
+            testCase.verifyEqual(cross(frame.x, frame.y), frame.z, 'AbsTol', testCase.Tol);
+        end
+
+        %% Property Access Tests
+        function testDependentProperties(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            T_arb = [R_arb, origin_arb; 0 0 0 1];
+            frame = ReferenceFrame3d(T_arb);
+
+            testCase.verifyEqual(frame.R, T_arb(1:3, 1:3), 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.origin, T_arb(1:3, 4), 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.x, T_arb(1:3, 1), 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.y, T_arb(1:3, 2), 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.z, T_arb(1:3, 3), 'AbsTol', testCase.Tol);
+        end
+
+        function testSetTValidation(testCase)
+             frame = ReferenceFrame3d();
+             T_orig = frame.T; % Get a valid T
+
+             % Invalid size
+             testCase.verifyError(@() set(frame, 'T', zeros(3,4)), ?MException);
+             % Non-finite
+             T_nan = T_orig; T_nan(1,1) = NaN;
+             testCase.verifyError(@() set(frame, 'T', T_nan), ?MException);
+             % Non-real
+             T_complex = T_orig; T_complex(1,1) = 1i;
+             testCase.verifyError(@() set(frame, 'T', T_complex), ?MException);
+
+             % Non-orthonormal rotation (R*R' ~= I)
+             T_bad_ortho = T_orig; T_bad_ortho(1,2) = 0.5; % Breaks orthogonality
+             testCase.verifyError(@() set(frame, 'T', T_bad_ortho), ?MException);
+
+             % Determinant ~= 1
+             T_bad_det = T_orig; T_bad_det(1:3,1:3) = diag([1 1 -1]); % Determinant is -1
+             testCase.verifyError(@() set(frame, 'T', T_bad_det), ?MException);
+
+             % Bottom row not [0 0 0 1]
+             T_bad_bottom = T_orig; T_bad_bottom(4,1) = 1;
+             testCase.verifyError(@() frame.update(T_bad_bottom), ?MException, ...
+                 'Bottom row check should fail');
+        end
+
+        %% Transformation Method Tests
+        function testTranslate(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            orig_origin = frame.origin;
+            dxyz = [0.1; -0.2; 0.3];
+
+            frame.translate(dxyz);
+
+            testCase.verifyEqual(frame.origin, orig_origin + dxyz, 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.R, R_arb, 'AbsTol', testCase.Tol); % R should be unchanged
+        end
+
+        function testReposition(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            new_pos = [-5; 6; -7];
+
+            frame.reposition(new_pos);
+
+            testCase.verifyEqual(frame.origin, new_pos, 'AbsTol', testCase.Tol);
+            testCase.verifyEqual(frame.R, R_arb, 'AbsTol', testCase.Tol); % R should be unchanged
+        end
+
+        function testRotateDCM(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            orig_T = frame.T;
+            dcm = testCase.eul2rotm_local([10, -20, 5], 'zyx', 'deg'); % Incremental rotation
+
+            frame.rotate_dcm(dcm);
+
+            T_rot_incr = [dcm, [0;0;0]; 0 0 0 1];
+            T_expected = orig_T * T_rot_incr;
+
+            testCase.verifyEqual(frame.T, T_expected, 'AbsTol', testCase.Tol);
+        end
+
+        function testRotateEuler(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            orig_T = frame.T;
+            angles_deg = [15, -30, 45]; % ZYX incremental rotation
+
+            frame.rotate_euler(angles_deg, 'Sequence', 'zyx', 'Units', 'deg');
+
+            R_incr = testCase.eul2rotm_local(angles_deg, 'zyx', 'deg');
+            T_rot_incr = [R_incr, [0;0;0]; 0 0 0 1];
+            T_expected = orig_T * T_rot_incr;
+
+            testCase.verifyEqual(frame.T, T_expected, 'AbsTol', testCase.Tol);
+        end
+
+        %% Coordinate Transformation Tests
+        function testLocalToBase(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            local_pt_col = [1; 1; 1];
+            local_pts_nx3 = [1 1 1; 0 0 0; -1 2 -3];
+
+            % Single point test (col vector input -> col vector output via Nx3 path)
+            base_pt_expected_col = R_arb * local_pt_col + origin_arb;
+            base_pt_actual_nx3 = frame.local2base(local_pt_col'); % Input needs to be row
+            testCase.verifyEqual(base_pt_actual_nx3', base_pt_expected_col, 'AbsTol', testCase.Tol);
+
+            % Multiple points test (Nx3 input)
+            base_pts_expected = (R_arb * local_pts_nx3' + origin_arb)'; % Equivalent math
+            base_pts_actual = frame.local2base(local_pts_nx3);
+            testCase.verifyEqual(base_pts_actual, base_pts_expected, 'AbsTol', testCase.Tol);
+
+             % Multiple points test (x,y,z input)
+             [bx, by, bz] = frame.local2base(local_pts_nx3(:,1), local_pts_nx3(:,2), local_pts_nx3(:,3));
+             base_pts_actual_xyz = [bx, by, bz];
+             testCase.verifyEqual(base_pts_actual_xyz, base_pts_expected, 'AbsTol', testCase.Tol);
+        end
+
+        function testBaseToLocal(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            base_pt_col = [2; 3; 4];
+            base_pts_nx3 = [2 3 4; 1 1 1; 5 -1 0];
+
+            % Manual inverse calculation for verification
+            R_inv = R_arb';
+            origin_inv = -R_inv * origin_arb;
+
+            % Single point test (col vector input -> col vector output via Nx3 path)
+            local_pt_expected_col = R_inv * base_pt_col + origin_inv;
+            local_pt_actual_nx3 = frame.base2local(base_pt_col'); % Input needs to be row
+            testCase.verifyEqual(local_pt_actual_nx3', local_pt_expected_col, 'AbsTol', testCase.Tol);
+
+            % Multiple points test (Nx3 input)
+            local_pts_expected = (R_inv * base_pts_nx3' + origin_inv)'; % Equivalent math
+            local_pts_actual = frame.base2local(base_pts_nx3);
+            testCase.verifyEqual(local_pts_actual, local_pts_expected, 'AbsTol', testCase.Tol);
+
+             % Multiple points test (x,y,z input)
+             [lx, ly, lz] = frame.base2local(base_pts_nx3(:,1), base_pts_nx3(:,2), base_pts_nx3(:,3));
+             local_pts_actual_xyz = [lx, ly, lz];
+             testCase.verifyEqual(local_pts_actual_xyz, local_pts_expected, 'AbsTol', testCase.Tol);
+        end
+
+        %% Composition and Inversion Tests
+        function testInverse(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            frame = ReferenceFrame3d(R_arb, origin_arb');
+            frame_inv = inv(frame);
+
+            % Manual calculation of inverse
+            R_inv_expected = R_arb';
+            origin_inv_expected = -R_inv_expected * origin_arb;
+            T_inv_expected = [R_inv_expected, origin_inv_expected; 0 0 0 1];
+
+            testCase.verifyEqual(frame_inv.T, T_inv_expected, 'AbsTol', testCase.Tol);
+
+            % Test F * inv(F) = I
+            identity_frame = frame * frame_inv; %#ok<*MINV>
+            testCase.verifyEqual(identity_frame.T, eye(4), 'AbsTol', testCase.Tol);
+
+             % Test inv(F) * F = I
+            identity_frame_2 = frame_inv * frame;
+            testCase.verifyEqual(identity_frame_2.T, eye(4), 'AbsTol', testCase.Tol);
+        end
+
+        function testComposeAndMtimes(testCase)
+            [R1, origin1] = testCase.createArbitraryRotOrigin();
+            frame1 = ReferenceFrame3d(R1, origin1');
+
+            [R2, origin2] = testCase.createArbitraryRotOrigin(45, 10, -60); % Different angles
+            frame2 = ReferenceFrame3d(R2, origin2');
+
+            T_expected = frame1.T * frame2.T;
+
+            % Test mtimes (*)
+            frame_composed_mtimes = frame1 * frame2;
+            testCase.verifyEqual(frame_composed_mtimes.T, T_expected, 'AbsTol', testCase.Tol);
+
+            % Test compose method
+            frame_composed_method = compose(frame1, frame2);
+            testCase.verifyEqual(frame_composed_method.T, T_expected, 'AbsTol', testCase.Tol);
+        end
+
+        function testComposeMultiple(testCase)
+            [R1, origin1] = testCase.createArbitraryRotOrigin(10, 20, 30);
+            frame1 = ReferenceFrame3d(R1, origin1');
+            [R2, origin2] = testCase.createArbitraryRotOrigin(40, 50, 60);
+            frame2 = ReferenceFrame3d(R2, origin2');
+            [R3, origin3] = testCase.createArbitraryRotOrigin(-10, -20, -30);
+            frame3 = ReferenceFrame3d(R3, origin3');
+
+            frames_array = [frame1; frame2; frame3]; % Needs column for compose
+
+            T_expected = frame1.T * frame2.T * frame3.T;
+
+            frame_composed_method = compose(frames_array); % Pass column vector
+            testCase.verifyEqual(frame_composed_method.T, T_expected, 'AbsTol', testCase.Tol);
+        end
+
+        %% Numeric Conversion Tests
+        function testAsTransform(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            T_arb = [R_arb, origin_arb; 0 0 0 1];
+            frame = ReferenceFrame3d(T_arb);
+            testCase.verifyEqual(frame.as_transform(), T_arb, 'AbsTol', testCase.Tol);
+        end
+
+        function testAsDcm(testCase)
+            [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+            T_arb = [R_arb, origin_arb; 0 0 0 1];
+            frame = ReferenceFrame3d(T_arb);
+            testCase.verifyEqual(frame.as_dcm(), R_arb, 'AbsTol', testCase.Tol);
+        end
+
+        function testAsEuler(testCase)
+            angles_deg_in = [30, 45, 60]; % ZYX
+            origin_row = [1, 2, 3];
+            frame = ReferenceFrame3d.from_euler(angles_deg_in, origin_row, 'Units', 'deg');
+
+            [yaw_deg, pitch_deg, roll_deg] = frame.as_euler('deg');
+            angles_deg_out = [yaw_deg, pitch_deg, roll_deg];
+
+            % Euler angles can have multiple representations (e.g., +/- 180).
+            % Easiest verification is to convert back to rotation matrix.
+            R_out = testCase.eul2rotm_local(angles_deg_out, 'zyx', 'deg');
+            testCase.verifyEqual(R_out, frame.R, 'AbsTol', testCase.Tol);
+
+            % Test radians output
+             [yaw_rad, pitch_rad, roll_rad] = frame.as_euler('rad');
+             testCase.verifyEqual([yaw_rad, pitch_rad, roll_rad], deg2rad(angles_deg_in), 'AbsTol', testCase.Tol);
+        end
+
+        function testAsEulerGimbalLock(testCase)
+            % Test pitch = +90 deg
+            angles_deg_in_p90 = [30, 90, 0]; % Yaw doesn't matter, roll is relative
+            frame_p90 = ReferenceFrame3d.from_euler(angles_deg_in_p90, [0 0 0], 'Units', 'deg');
+            [y_p90, p_p90, r_p90] = frame_p90.as_euler('deg');
+            testCase.verifyEqual(p_p90, 90, 'AbsTol', testCase.Tol);
+             % In gimbal lock at +90, yaw=0, roll = original_yaw + original_roll
+            R_out_p90 = testCase.eul2rotm_local([y_p90, p_p90, r_p90], 'zyx', 'deg');
+            testCase.verifyEqual(R_out_p90, frame_p90.R, 'AbsTol', testCase.Tol);
+
+
+            % Test pitch = -90 deg
+            angles_deg_in_n90 = [45, -90, 0]; % Yaw doesn't matter, roll is relative
+            frame_n90 = ReferenceFrame3d.from_euler(angles_deg_in_n90, [0 0 0], 'Units', 'deg');
+            [y_n90, p_n90, r_n90] = frame_n90.as_euler('deg');
+            testCase.verifyEqual(p_n90, -90, 'AbsTol', testCase.Tol);
+             % In gimbal lock at -90, yaw=0, roll = original_roll - original_yaw
+            R_out_n90 = testCase.eul2rotm_local([y_n90, p_n90, r_n90], 'zyx', 'deg');
+             testCase.verifyEqual(R_out_n90, frame_n90.R, 'AbsTol', testCase.Tol);
+        end
+
+        %% Copyable Test
+        function testCopyMethod(testCase)
+             [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+             frame_orig = ReferenceFrame3d(R_arb, origin_arb');
+             frame_copy = copy(frame_orig);
+
+             % Check properties are equal
+             testCase.verifyEqual(frame_copy.T, frame_orig.T, 'AbsTol', testCase.Tol);
+             % Check they are different objects
+             testCase.verifyNotSameHandle(frame_orig, frame_copy);
+
+             % Modify copy and check original is unchanged
+             frame_copy.translate([1;1;1]);
+             testCase.verifyNotEqual(frame_copy.T, frame_orig.T);
+        end
+
+        %% Toolbox Interoperability Tests (Conditional)
+        % These tests only run if the required toolboxes are installed.
+
+        function testSE3Conversion(testCase)
+            try
+                [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+                T_arb = [R_arb, origin_arb; 0 0 0 1];
+                frame = ReferenceFrame3d(T_arb);
+                frame_se3 = frame.se3(); % Convert to se3
+    
+                % Verify class
+                testCase.verifyClass(frame_se3, 'se3');
+                % Verify value
+                testCase.verifyEqual(frame_se3.tform, T_arb, 'AbsTol', testCase.Tol);
+    
+                 % Test update from se3
+                 frame_se3_new = se3(testCase.eul2rotm_local([5 10 15],'zyx','deg'), 'eul', origin_arb'/2);
+                 frame.update(frame_se3_new);
+                 testCase.verifyEqual(frame.T, frame_se3_new.tform, 'AbsTol', testCase.Tol);
+            catch me
+                if strcmp(me.identifier, 'MATLAB:UndefinedFunction') && contains(me.message, 'se3')
+                    % user doesn't have the right toolbox; skip
+                    return
+                else
+                    rethrow(me);
+                end
+            end
+        end
+
+        function testSO3Conversion(testCase)
+            try
+                [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+                frame = ReferenceFrame3d(R_arb, origin_arb');
+                frame_so3 = frame.so3(); % Convert to so3
+    
+                % Verify class
+                testCase.verifyClass(frame_so3, 'so3');
+                % Verify value
+                testCase.verifyEqual(frame_so3.rotm, R_arb, 'AbsTol', testCase.Tol);
+    
+                 % Test update from so3
+                 frame_so3_new = so3(testCase.eul2rotm_local([-5 -10 -15],'zyx','deg'), 'rotm');
+                 origin_new = [9;8;7];
+                 frame.update(frame_so3_new, origin_new');
+                 testCase.verifyEqual(frame.R, frame_so3_new.rotm, 'AbsTol', testCase.Tol);
+                 testCase.verifyEqual(frame.origin, origin_new, 'AbsTol', testCase.Tol);
+            catch me
+                if strcmp(me.identifier, 'MATLAB:UndefinedFunction') && contains(me.message, 'so3')
+                    % user doesn't have the right toolbox; skip
+                    return
+                else
+                    rethrow(me);
+                end
+            end
+        end
+
+        function testQuaternionConversion(testCase)
+            try
+                [R_arb, origin_arb] = testCase.createArbitraryRotOrigin();
+                frame = ReferenceFrame3d(R_arb, origin_arb');
+                frame_quat = frame.quaternion(); % Convert to quaternion
+    
+                % Verify class
+                testCase.verifyClass(frame_quat, 'quaternion');
+                % Verify value by converting back to rotation matrix
+                testCase.verifyEqual(rotmat(frame_quat, 'frame'), R_arb, 'AbsTol', testCase.Tol);
+    
+                % Test update from quaternion
+                q_new = quaternion(testCase.eul2rotm_local([2 4 6],'zyx','deg'), 'rotmat', 'frame');
+                origin_new = [1;4;9];
+                frame.update(q_new, origin_new'); % Update uses rotmat(q,'frame') internally
+                testCase.verifyEqual(frame.R, rotmat(q_new,'frame'), 'AbsTol', testCase.Tol);
+                testCase.verifyEqual(frame.origin, origin_new, 'AbsTol', testCase.Tol);
+            catch me
+                if strcmp(me.identifier, 'MATLAB:UndefinedFunction') && contains(me.message, 'quaternion')
+                    % user doesn't have the right toolbox; skip
+                    return
+                else
+                    rethrow(me);
+                end
+            end
+        end
+
+    end
+
+    methods (Access = private)
+        % Helper Functions to avoid toolbox dependencies
+
+        function [R, origin] = createArbitraryRotOrigin(testCase, ang1, ang2, ang3)
+            % Creates a repeatable arbitrary rotation and origin
+            if nargin < 2, ang1 = 30; end
+            if nargin < 3, ang2 = -45; end
+            if nargin < 4, ang3 = 60; end
+
+            R = testCase.eul2rotm_local([ang1, ang2, ang3], 'zyx', 'deg');
+            origin = [1; 2; 3]; % Column vector
+        end
+
+        function R = eul2rotm_local(~, angles, sequence, units)
+            % Simple ZYX Euler to Rotation Matrix conversion.
+            % Expand this if other sequences are needed for tests.
+            arguments
+                ~
+                angles (1,3) double
+                sequence (1,3) char = 'zyx'
+                units (1,:) char = 'rad'
+            end
+
+            if strcmpi(units, 'deg')
+                angles = angles * pi/180;
+            end
+
+            a = angles(1); % Angle for first rotation in sequence
+            b = angles(2); % Angle for second rotation
+            c = angles(3); % Angle for third rotation
+
+            ca = cos(a); sa = sin(a);
+            cb = cos(b); sb = sin(b);
+            cc = cos(c); sc = sin(c);
+
+            switch lower(sequence)
+                case 'zyx'
+                    % Rz(a) * Ry(b) * Rx(c)
+                    Rx = [1 0 0; 0 cc -sc; 0 sc cc];
+                    Ry = [cb 0 sb; 0 1 0; -sb 0 cb];
+                    Rz = [ca -sa 0; sa ca 0; 0 0 1];
+                    R = Rz * Ry * Rx;
+                % Add other sequences here if needed by tests
+                otherwise
+                    error('Sequence ''%s'' not implemented in test helper.', sequence);
+            end
+        end
+
+        function angles = rotm2eul_local(~, R, sequence, units)
+             % Simple ZYX Rotation Matrix to Euler Angles conversion.
+             % Matches the implementation in as_euler for verification.
+             arguments
+                ~
+                R (3,3) double
+                sequence (1,3) char = 'zyx'
+                units (1,:) char = 'rad'
+             end
+
+             if ~strcmpi(sequence, 'zyx')
+                 error('Sequence ''%s'' not implemented in test helper.', sequence);
+             end
+
+             % Use transpose because as_euler expects R_local_to_base'
+             Rt = R';
+             r11 = Rt(1,1); r12 = Rt(1,2); r13 = Rt(1,3);
+             r21 = Rt(2,1); r22 = Rt(2,2); r23 = Rt(2,3);
+             r33 = Rt(3,3);
+
+             tol = 1e-12; % Tolerance close to 1
+
+             if abs(r13) > (1 - tol)
+                % Gimbal lock
+                yaw = 0; % Convention: set yaw to 0
+                if r13 < 0 % Pitch = -90 deg
+                    pitch = -pi/2;
+                    roll = atan2(r21, r22); % roll = atan2(R21, R22)
+                else % Pitch = +90 deg
+                    pitch = pi/2;
+                    roll = -atan2(r21, r22); % roll = -atan2(R21, R22)
+                end
+            else
+                % Normal case
+                pitch = asin(-r13);
+                yaw = atan2(r12, r11);
+                roll = atan2(r23, r33);
+            end
+
+            angles = [yaw, pitch, roll]; % ZYX order
+
+            if strcmpi(units, 'deg')
+                angles = angles * 180/pi;
+            end
+        end
+
+        function installed = isToolboxInstalled(~, toolboxName)
+            % Checks if a toolbox is installed using ver.
+            % Safer than exist() for toolbox classes which might be shadowed.
+            v = ver;
+            installed = any(strcmp(toolboxName, {v.Name}));
+        end
+
+    end % methods (Access = private)
+
+end % classdef
