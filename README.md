@@ -82,15 +82,19 @@ world.translate([0.5 0.5 0.25])
 
 See [demo_01_ReferenceFrame3d](./test/demo_01_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario with multiple nested reference frames rotating with respect to one another.
 
-<img src="./assets/01_demo.gif" width="80%"/>
+<img src="./assets/01_demo.gif" width="75%"/>
 
-### 4. Practical usage
+### 4. Animate using only hgtransforms (only plot user data)
 
 See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a more practical use-case, where the class is used "behind the scenes" to animate a CAD model.  In this case the class is used only to set up and update `hgtransform` objects.
 
 > **Note:** there is no requirement to use any plotting methods with this class.  It can also be used purely as a numerical tool.
 
 <img src="./assets/02_demo.gif"/>
+
+### 5. Set up an axis in the local ENU frame & transform ECEF, NED, and body frame data sources automatically
+
+
 
 # API Overview
 
