@@ -92,9 +92,70 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 
 <img src="./assets/02_demo.gif"/>
 
-### 5. Set up an axis in the local ENU frame & transform ECEF, NED, and body frame data sources automatically
+### 5. Practical example (Navigation/Tracking)
 
+In [demo_03_ReferenceFrame3d](./test/demo_03_ReferenceFrame3d.m) we set up a common collection of frames used for navigation and tracking:
 
+* Axis (**ENU**) frame: we want our data to be displayed in the axis in East-North-Up (ENU) coordinates using a fixed reference point
+* **ECEF** frame: fixed at the center of the Earth and rotates with the Earth
+* **NED** frame: the local-level North-East-Down frame that moves with our aircraft 
+* **Body** frame: the orientation of the aircraft with respect to local-level
+
+Using `ReferenceFrame3d`, it's simple to set up a scenario like this (copying some code from demo here):
+
+```matlab
+    r = 6378137; % earth equatorial radius, meters
+    refpoint = [30 -119 0]; % axis origin point (lat lon alt)
+
+    % we want our plot to appear with origin = (0,0,0) at our local reference point with
+    % basis vectors aligned to ENU.  since we are basically just saying that E=[1 0 0],
+    % N=[0 1 0], and U=[0 0 1], this is just the identity transform (until we add more frames)
+    axis_enu = ReferenceFrame3d();
+    axis_enu.name = 'ENU';
+
+    % to give our identity transform (above) meaning, we need to define how to go from ENU 
+    % to the ECEF frame. so we need to describe where the ECEF frame is with respect to (FROM) 
+    % the ENU frame (hence the call to inv()).  this ENU frame is fixed to the Earth.
+    ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, "degrees"));
+    ecef.name = 'ECEF';
+
+    % then describe where the local-level NED frame is with respect to ECEF (this is the
+    % local-level frame attached to our aircraft and will change at every timestep)
+    platform_pos = [35, -117, 1e3];
+    ned = ReferenceFrame3d.ecef2ned(platform_pos, "degrees");
+    ned.name = 'NED';
+
+    % and where the body frame is with respect to NED (it's co-located with NED and we'll
+    % initialize the orientation to be 30-degrees yaw, 10-degrees pitch)
+    body = ReferenceFrame3d.from_euler([30 10 0], [0 0 0], Units="degrees");
+    body.name = 'BODY';
+
+    %% Set the reference frame hierarchy with method hgtransform()
+    hfig = figure('units','normalized','position',[0.05 0.05 0.9 0.85]);
+    ax = axes('parent', hfig, 'nextplot', 'add');
+
+    frames = [axis_enu, ecef, ned, body];
+    frames.hgtransform(ax);
+
+    % plot a simple sphere to represent the Earth
+    [x,y,z] = sphere(50);
+    x = x * r;
+    y = y * r;
+    z = z * r;
+
+    % our sphere is defined in the ECEF frame, so parent to the ECEF frame
+    surf(x,y,z, ...
+        'Parent', ecef.hgtransform(), ...
+        'FaceAlpha',0.5, 'Clipping', 'off', 'EdgeAlpha', 0.2);
+    plot(frames, 'LineLength', r/3, 'TextLabels', true);
+    axis(ax,'equal');
+```
+
+Note that by assigning each frame a `name` and calling `plot` with `TextLabels=true`, we'll see the name of each frame next to each basis vector arrow.  You should see a figure like this:
+
+<img src="./assets/global_frames.png"/>
+
+Okay that's neat, but how do we do something useful with it?  The demo script **TODO**
 
 # API Overview
 
