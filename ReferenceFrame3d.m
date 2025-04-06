@@ -719,7 +719,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             function plot_arrowhead(parent, base_length, color, basis)
                 %PLOT_ARROWHEAD Local function to plot a colored cone.
-                m = 20; n = 2;
+                m = 20; n = 2; headsz = 0.1;
                 theta = linspace(0, 2*pi, m);
                 R = linspace(0, 0.2*base_length, n);
                 [T, R] = meshgrid(theta, R);
@@ -727,16 +727,16 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 switch basis
                     case 1 % x
                         x = base_length - R;
-                        y = R.*.2.*sin(T);
-                        z = R.*.2.*cos(T);
+                        y = R.*headsz.*sin(T);
+                        z = R.*headsz.*cos(T);
                     case 2 % y
                         y = base_length - R;
-                        z = R.*.2.*sin(T);
-                        x = R.*.2.*cos(T);
+                        z = R.*headsz.*sin(T);
+                        x = R.*headsz.*cos(T);
                     case 3 % z
                         z = base_length - R;
-                        x = R.*.2.*sin(T);
-                        y = R.*.2.*cos(T);
+                        x = R.*headsz.*sin(T);
+                        y = R.*headsz.*cos(T);
                 end
 
                 surface(x, y, z, ...
