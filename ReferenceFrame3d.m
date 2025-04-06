@@ -614,13 +614,30 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(:,1) ReferenceFrame3d
             end
+
             hfig = figure;
             ax = axes('parent', hfig);
             grid(ax, 'on');
             box(ax, 'on');
-            this.plot('parent',ax);
+
+            % configure line lengths
+            this.plot(...
+                'Parent',ax, ...
+                'TextLabels', true, ...
+                'LineLength', local_find_max_origin_dist(this)/4);
+
             hold(ax,'on');
+            axis(ax, 'equal');
             view(ax,45,30);
+            rotate3d(ax,'on');
+
+            function maxr = local_find_max_origin_dist(frames)
+                maxr = nan;
+                for i = 1:numel(frames)
+                    composed = frames(1:i).compose();
+                    maxr = max(maxr, vecnorm(composed.origin));
+                end
+            end
         end
 
         function plot(objs, opts)
@@ -634,8 +651,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.LineLength(1,3) double = 1
                 opts.Arrowheads(1,3) matlab.lang.OnOffSwitchState = true
                 opts.TextLabels(1,3) matlab.lang.OnOffSwitchState = false
-                opts.Disable(1,1) logical = false % delete and return early
                 opts.Detach(1,1) logical = false % create no ties to original objects
+                opts.Delete(1,1) logical = false % delete and return early
             end
 
             if opts.Detach
@@ -659,7 +676,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 % we may wish to plot other things to the reference frame transform,
                 % so let's organize the basis vector data under its own group
                 delete(objs(i).h_plot_group);
-                if opts.Disable, continue; end
+                if opts.Delete, continue; end
                 objs(i).h_plot_group = hggroup('Parent', parent, 'Tag', 'RF3D_BASIS_GROUP');
     
                 if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
