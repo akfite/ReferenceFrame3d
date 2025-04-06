@@ -79,6 +79,7 @@ world.translate([0.5 0.5 0.25])
 <img src="./assets/05_twoframes.png"/>
 
 ### 3. Animate a sequence of nested reference frames
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=akfite/ReferenceFrame3d&file=test/demo_01_ReferenceFrame3d.m)
 
 See [demo_01_ReferenceFrame3d](./test/demo_01_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario with multiple nested reference frames rotating with respect to one another.
 
@@ -86,13 +87,15 @@ See [demo_01_ReferenceFrame3d](./test/demo_01_ReferenceFrame3d.m) to explore a m
 
 ### 4. Animate using only hgtransforms (only plot user data)
 
-See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a more practical use-case, where the class is used "behind the scenes" to animate a CAD model.  In this case the class is used only to set up and update `hgtransform` objects.
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=akfite/ReferenceFrame3d&file=test/demo_02_ReferenceFrame3d.m)
 
-> **Note:** there is no requirement to use any plotting methods with this class.  It can also be used purely as a numerical tool.
+See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a more practical use-case, where the class is used "behind the scenes" to animate a CAD model.  In this case the class is used only to set up and update `hgtransform` objects.
 
 <img src="./assets/02_demo.gif"/>
 
 ### 5. Practical example (Navigation/Tracking)
+
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=akfite/ReferenceFrame3d&file=test/demo_03_ReferenceFrame3d.m)
 
 In [demo_03_ReferenceFrame3d](./test/demo_03_ReferenceFrame3d.m) we set up a collection of frames commonly used for navigation and tracking:
 
