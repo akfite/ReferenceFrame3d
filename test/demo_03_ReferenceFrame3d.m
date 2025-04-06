@@ -50,50 +50,5 @@ function demo_03_ReferenceFrame3d()
     %
     % and of course, you can add as many more relationships as you'd like
 
-    %% Show the frames with respect to the Earth
-
-    % plot a simple sphere to represent the Earth
-    r = 6378137; % earth equatorial radius, meters
-    [x,y,z] = sphere(50);
-    x = x * r;
-    y = y * r;
-    z = z * r;
-
-    % our sphere is defined in the ECEF frame, so parent to the ECEF frame
-    % surf(x,y,z,...
-    %     'Parent',ecef.hgtransform(), ...
-    %     'FaceAlpha',0.5, ...
-    %     'Clipping','off');
-
-    % import some terrain data
-    load('rf3d_demo_map.mat')
-    [lat,lon] = meshgrid(lat, lon);
-    [x,y,z] = llad2ecef(lat(:), lon(:), 120*h(:));
-    surf(...
-        reshape(x,size(h)), ...
-        reshape(y,size(h)), ...
-        reshape(z,size(h)), ...
-        h, ...
-        'parent',ecef.hgtransform(),'EdgeColor','none','Clipping','off');
-
-    % display all our basis vectors in the axis (note we've already called
-    % hgtransform(ax), so we don't need to specify parent again here)
-    % plot(frames, ...
-    %     'LineLength', r/4, ...
-    %     'TextLabels',true,...
-    %     'Detach', true);
-    
-    n = 1852*25;
-    xlim(ax(1),n*[-1 1]);
-    ylim(ax(1),n*[-1 1]);
-    zlim(ax(1),[0 4000]);
-
-    axis(ax(1),'vis3d');
-    axis(ax(1), 'off');
-    rotate3d(ax(1),'on');
-    axis(ax(1),'equal');
-    view(ax(1), -45, 25)
-
-    %% In the right-side axis
-
+    %% Draw some terrain
 end

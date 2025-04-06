@@ -156,7 +156,7 @@ Using `ReferenceFrame3d`, it's simple to set up a scenario like this (copying so
 
 Note that by assigning each frame a `name` and calling `plot` with `TextLabels=true`, we'll see the name of each frame next to each basis vector arrow.  You should see a figure like this:
 
-<img src="./assets/global_frames.png" width="80%"/>
+<img src="./assets/global_frames.png"/>
 
 Okay that's neat, but how do we do something useful with it?  The demo script **TODO**
 
