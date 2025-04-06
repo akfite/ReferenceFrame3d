@@ -1,6 +1,6 @@
 function demo_03_ReferenceFrame3d()
 
-    refpoint = [35 -117 2000];
+    refpoint = [35 -117 200];
 
     %% Initialize reference frames
     
@@ -68,7 +68,7 @@ function demo_03_ReferenceFrame3d()
     % import some terrain data
     load('rf3d_demo_map.mat')
     [lat,lon] = meshgrid(lat, lon);
-    [x,y,z] = llad2ecef(lat(:), lon(:), h(:));
+    [x,y,z] = llad2ecef(lat(:), lon(:), 120*h(:));
     surf(...
         reshape(x,size(h)), ...
         reshape(y,size(h)), ...
@@ -78,19 +78,20 @@ function demo_03_ReferenceFrame3d()
 
     % display all our basis vectors in the axis (note we've already called
     % hgtransform(ax), so we don't need to specify parent again here)
-    plot(frames, ...
-        'LineLength', r/4, ...
-        'TextLabels',true,...
-        'Detach', true);
+    % plot(frames, ...
+    %     'LineLength', r/4, ...
+    %     'TextLabels',true,...
+    %     'Detach', true);
     
-    n = 1852*2500;
+    n = 1852*25;
     xlim(ax(1),n*[-1 1]);
     ylim(ax(1),n*[-1 1]);
-    zlim(ax(1),[-5000 5000]);
+    zlim(ax(1),[0 4000]);
 
     axis(ax(1),'vis3d');
     axis(ax(1), 'off');
     rotate3d(ax(1),'on');
+    axis(ax(1),'equal');
     view(ax(1), -45, 25)
 
     %% In the right-side axis

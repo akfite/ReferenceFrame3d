@@ -94,7 +94,7 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 
 ### 5. Practical example (Navigation/Tracking)
 
-In [demo_03_ReferenceFrame3d](./test/demo_03_ReferenceFrame3d.m) we set up a common collection of frames used for navigation and tracking:
+In [demo_03_ReferenceFrame3d](./test/demo_03_ReferenceFrame3d.m) we set up a collection of frames commonly used for navigation and tracking:
 
 * Axis (**ENU**) frame: we want our data to be displayed in the axis in East-North-Up (ENU) coordinates using a fixed reference point
 * **ECEF** frame: fixed at the center of the Earth and rotates with the Earth
@@ -107,7 +107,7 @@ Using `ReferenceFrame3d`, it's simple to set up a scenario like this (copying so
     r = 6378137; % earth equatorial radius, meters
     refpoint = [30 -119 0]; % axis origin point (lat lon alt)
 
-    % we want our plot to appear with origin = (0,0,0) at our local reference point with
+    % we want our plot to appear with origin = (0,0,0) at our fixed reference point with
     % basis vectors aligned to ENU.  since we are basically just saying that E=[1 0 0],
     % N=[0 1 0], and U=[0 0 1], this is just the identity transform (until we add more frames)
     axis_enu = ReferenceFrame3d();
@@ -115,7 +115,7 @@ Using `ReferenceFrame3d`, it's simple to set up a scenario like this (copying so
 
     % to give our identity transform (above) meaning, we need to define how to go from ENU 
     % to the ECEF frame. so we need to describe where the ECEF frame is with respect to (FROM) 
-    % the ENU frame (hence the call to inv()).  this ENU frame is fixed to the Earth.
+    % the ENU frame (hence the call to inv())
     ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, "degrees"));
     ecef.name = 'ECEF';
 
@@ -153,7 +153,7 @@ Using `ReferenceFrame3d`, it's simple to set up a scenario like this (copying so
 
 Note that by assigning each frame a `name` and calling `plot` with `TextLabels=true`, we'll see the name of each frame next to each basis vector arrow.  You should see a figure like this:
 
-<img src="./assets/global_frames.png"/>
+<img src="./assets/global_frames.png" width="80%"/>
 
 Okay that's neat, but how do we do something useful with it?  The demo script **TODO**
 
@@ -179,7 +179,7 @@ Okay that's neat, but how do we do something useful with it?  The demo script **
 *   `ReferenceFrame3d()`: Default constructor (`eye(4)`).
 *   `ReferenceFrame3d(rot)`: Rotation-only constructor (or directly assign a 4x4 transform).
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
-*   `ReferenceFrame3d(____, 'name'): Assign a text label during construction as the last argument.
+*   `ReferenceFrame3d(____, 'name')`: Assign a text label during construction as the last argument.
 *   `update(rot, origin)`: Configure an existing object.
 
 > **Note:** `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
