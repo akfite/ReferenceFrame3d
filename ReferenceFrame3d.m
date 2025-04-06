@@ -49,7 +49,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             if isscalar(rot)
                 switch string(class(rot))
                     case "ReferenceFrame3d"
-                        T = rot.T; % only transform; no handless
+                        T = rot.T;
+                        this.name = rot.name;
                     case "quaternion"
                         T = rotmat(quat,"frame");
                         T(4,4) = 1;
@@ -634,6 +635,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.Arrowheads(1,3) matlab.lang.OnOffSwitchState = true
                 opts.TextLabels(1,3) matlab.lang.OnOffSwitchState = false
                 opts.Disable(1,1) logical = false % delete and return early
+                opts.Detach(1,1) logical = false % create no ties to original objects
+            end
+
+            if opts.Detach
+                for i = 1:numel(objs)
+                    objs(i) = ReferenceFrame3d(objs(i)); % overwrite with a copy
+                end
             end
 
             % create the transforms (if they don't already exist)
