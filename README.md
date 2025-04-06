@@ -187,7 +187,7 @@ Okay that's neat, but how do we do something useful with it?  The demo script **
 #### Static Constructors (Utility)
 *   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
 *   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
-*   `ReferenceFrame3d.from_euler(angles, origin, angleunit)`: Build a frame from an euler sequence.
+*   `ReferenceFrame3d.from_euler(angles, origin, opts...)`: Build a frame from an euler sequence.
 *   `ReferenceFrame3d.from_campos(ax)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
 *   `ReferenceFrame3d.from_view_axis(observer, target, up)`: Build a frame from any camera perspective (with `+z` as the view axis).
 *   `ReferenceFrame3d.ecef2ned([lat, lon, alt], angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level North-East-Down frame.
