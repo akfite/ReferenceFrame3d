@@ -3,6 +3,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         & matlab.mixin.SetGet
     
     properties
+        name(1,:) char % optional text label to be used with plot()
         T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
     end
 
@@ -22,13 +23,17 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Construct/Update
     methods
-        function this = ReferenceFrame3d(rot, origin)
+        function this = ReferenceFrame3d(varargin)
             %REFERENCEFRAME3D Constructor.
-            arguments
-                rot = eye(4)
-                origin(1,3) double = [0 0 0]
+            if nargin == 0
+                return % default constructor
             end
-            this.update(rot, origin);
+            % intercept the nametag arg so that it's always the last argument
+            if ischar(varargin{end}) || isstring(varargin{end})
+                this.name = varargin{end};
+                varargin(end) = [];
+            end
+            this.update(varargin{:});
         end
 
         function this = update(this, rot, origin)
@@ -95,7 +100,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             T = [x_basis; y_basis; z_basis]';
             T(4,4) = 1;
             T(1:3,4) = point;
-            obj = ReferenceFrame3d(T);
+            obj = ReferenceFrame3d(T, 'normal');
         end
 
         function obj = from_coplanar_vectors(v1, v2, origin)
@@ -113,7 +118,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             dcm = [x_basis(:) y_basis(:) z_basis(:)];
             dcm = dcm ./ vecnorm(dcm, 2, 1);
 
-            obj = ReferenceFrame3d(dcm, origin);
+            obj = ReferenceFrame3d(dcm, origin, 'coplanar');
         end
 
         function obj = from_euler(angles, origin, opts)
@@ -139,6 +144,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 campos(ax), ...
                 camtarget(ax), ...
                 camup(ax));
+            obj.name = 'campos';
         end
 
         function obj = from_view_axis(observer, target, up)
@@ -156,7 +162,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             dcm = [x(:) y(:) z(:)];
             dcm = dcm ./ vecnorm(dcm, 2, 1); % make unit vectors
 
-            obj = ReferenceFrame3d(dcm, observer);
+            obj = ReferenceFrame3d(dcm, observer, 'viewaxis');
         end
 
         function obj = ecef2ned(lla, angleunit)
@@ -197,7 +203,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             % convert geodetic position to ECEF to set the origin
             pos_ecef = local_lla2ecef();
-            obj = ReferenceFrame3d(C_E2L, pos_ecef);
+            obj = ReferenceFrame3d(C_E2L, pos_ecef, 'NED');
 
             function pos_ecef = local_lla2ecef()
                 %LOCAL_LLA2ECEF Helper function to convert geodetic coordinates to ECEF.
@@ -232,6 +238,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                     1 0 0
                     0 0 -1
                 ]);
+            obj.name = 'ENU';
         end
 
         function validate_transform(T)
@@ -688,8 +695,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                         plot_arrowhead(objs(i).h_plot_group, sz(j), opts.Colors(j), j);
                     end
                     if opts.TextLabels(j)
+                        if ~isempty(objs(i).name)
+                            name = ['_{' objs(i).name '}'];
+                        else
+                            name = '';
+                        end
                         text(sz(1)*(j==1), sz(2)*(j==2), sz(3)*(j==3), ...
-                            string([' ' basis_letter(j)]), ...
+                            string([' ' basis_letter(j) name]), ...
                             'Parent', objs(i).h_plot_group, ...
                             'Color', opts.Colors(j), ...
                             'HitTest','off', ...
