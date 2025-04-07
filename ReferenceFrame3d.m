@@ -52,7 +52,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                         T = rot.T;
                         this.name = rot.name;
                     case "quaternion"
-                        T = rotmat(quat,"frame");
+                        T = rotmat(rot,"point");
                         T(4,4) = 1;
                     case "se3"
                         T = tform(rot);
