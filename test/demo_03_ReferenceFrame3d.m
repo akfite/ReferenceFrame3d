@@ -1,7 +1,5 @@
 function demo_03_ReferenceFrame3d()
 
-    refpoint = [35 -117 200];
-
     %% Initialize reference frames
     
     % we want our plot to appear with origin = (0,0,0) at our local reference point with
@@ -13,6 +11,7 @@ function demo_03_ReferenceFrame3d()
     % to give our identity transform (above) meaning, we need to define how to go from ENU 
     % to the ECEF frame. so we need to describe where the ECEF frame is with respect to (FROM) 
     % the ENU frame (hence the call to inv()).  this ENU frame is fixed to the Earth.
+    refpoint = [39.22 -121.815 1000];
     ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, "degrees"));
     ecef.name = 'ECEF';
 
@@ -23,7 +22,7 @@ function demo_03_ReferenceFrame3d()
 
     % and where the body frame is with respect to NED (it's co-located with NED and we'll
     % initialize the orientation to be 30-degrees yaw, 10-degrees pitch)
-    body = ReferenceFrame3d.from_euler([30 10 0], [0 0 0], Units="degrees");
+    body = ReferenceFrame3d.from_euler([0 0 0], [0 0 0], Units="degrees");
     body.name = 'BODY';
 
     %% Set the reference frame hierarchy with method hgtransform()
@@ -50,5 +49,64 @@ function demo_03_ReferenceFrame3d()
     %
     % and of course, you can add as many more relationships as you'd like
 
-    %% Draw some terrain
+    %% Draw some terrain using included map data
+    
+    map = load('rf3d_demo_map.mat');
+
+    % convert the lat-lon-alt terrain data to cartesian ECEF
+    [lon, lat] = meshgrid(map.lon, map.lat);
+    [x,y,z] = helper_llad2ecef(lat(:), lon(:), single(map.h(:)));
+    x = reshape(x, size(map.h));
+    y = reshape(y, size(map.h));
+    z = reshape(z, size(map.h));
+
+    % plot the terrain data parented to the ECEF transform
+    surf(x, y, z, single(map.h), ...
+        'Parent', ecef.hgtransform(), ...
+        'LineStyle', 'none', ...
+        'Clipping','off');
+
+    % axes are going to be highly distorted so we'll need to specify 
+    axis_enu.plot('LineLength', [1e4 1e4 1e3], 'Arrowheads', false, 'TextLabels', true);
+    ned.plot('LineLength', [1e4 1e4 1e3], 'Arrowheads', false, 'TextLabels', true);
+    body.plot('LineLength', [1e4 1e4 1e3], 'Arrowheads', false, 'TextLabels', true);
+
+    material dull
+    camlight
+    view(-140, 50)
+    axis(ax, 'off');
+    rotate3d(ax, 'on');
+
+    b = 1852 * 30;
+    xlim(ax, [-1 1]*b);
+    ylim(ax, [-1 1]*b);
+    zlim(ax, [-500 5000]);
+
+    %% Draw a trajectory over the terrain
+
+    lat = linspace(38.07, 39.59, 1000);
+    lon = linspace(-122.07, -121.26, 1000);
+    alt = 2000;
+    [x,y,z] = helper_llad2ecef(lat, lon, alt);
+
+    h = plot3(x,y,z,'.-',...
+        'Parent', ecef.hgtransform(), ...
+        'LineWidth', 1, ...
+        'Clipping','off');
+    text(x(500), y(500), z(500), "  trajectory data", ...
+        'Parent', ecef.hgtransform(), ...
+        'Color', h.Color, ...
+        'Clipping', 'off');
+
+end
+
+function [x,y,z] = helper_llad2ecef(lat, lon, alt)
+    r = 6378137;
+    ecc = 0.00669437999014;
+
+    rc = r./sqrt(1.0 - ecc*sind(lat).^2);
+
+    x = (rc + alt).*cosd(lat).*cosd(lon);
+    y = (rc + alt).*cosd(lat).*sind(lon);
+    z = (rc + alt - ecc*rc).*sind(lat);
 end

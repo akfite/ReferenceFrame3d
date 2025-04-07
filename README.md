@@ -158,7 +158,9 @@ Note that by assigning each frame a `name` and calling `plot` with `TextLabels=t
 
 <img src="./assets/global_frames.png"/>
 
-Okay that's neat, but how do we do something useful with it?  The demo script **TODO**
+Using these frames, we can import data from a variety of sources and just plot them straight into the axis.  In this example we use terrain data
+
+<img src="./assets/terrainview.jpg"/>
 
 # API Overview
 
