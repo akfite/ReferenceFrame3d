@@ -575,7 +575,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(1,1) ReferenceFrame3d
             end
-            tform = se3(cat(3, this.T));
+            tform = se3(this.T);
         end
 
         function rot = so3(this)
@@ -583,7 +583,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(1,1) ReferenceFrame3d
             end
-            rot = so3(cat(3, this.R));
+            rot = so3(this.R);
         end
 
         function q = quaternion(this)
@@ -591,7 +591,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(1,1) ReferenceFrame3d
             end
-            q = quaternion(cat(3, this.R));
+            q = quaternion(this.R,"rotmat","point");
         end
     end
 
