@@ -135,7 +135,7 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
                 R_arb = testCase.eul2rotm_local([15, -25, 35], 'zyx', 'deg');
                 origin_arb = [4; 5; 6];
                 T_expected = [R_arb, origin_arb; 0 0 0 1];
-                quat_arb = quaternion(R_arb, 'rotmat', 'frame'); % This line might error
+                quat_arb = quaternion(R_arb, 'rotmat', 'point'); % This line might error
 
                 frame.update(quat_arb, origin_arb'); % Update with quaternion and origin
 
@@ -794,10 +794,10 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
                 % Verify value
                 testCase.verifyEqual(frame_se3.tform, T_arb, 'AbsTol', testCase.Tol);
     
-                 % Test update from se3
-                 frame_se3_new = se3(testCase.eul2rotm_local([5 10 15],'zyx','deg'), 'eul', origin_arb'/2);
-                 frame.update(frame_se3_new);
-                 testCase.verifyEqual(frame.T, frame_se3_new.tform, 'AbsTol', testCase.Tol);
+                % Test update from se3
+                frame_se3_new = se3(testCase.eul2rotm_local([5 10 15],'zyx','deg'), origin_arb'/2);
+                frame.update(frame_se3_new);
+                testCase.verifyEqual(frame.T, frame_se3_new.tform, 'AbsTol', testCase.Tol);
             catch me
                 if strcmp(me.identifier, 'MATLAB:UndefinedFunction') && contains(me.message, 'se3')
                     % user doesn't have the right toolbox; skip
@@ -820,7 +820,7 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
                 testCase.verifyEqual(frame_so3.rotm, R_arb, 'AbsTol', testCase.Tol);
     
                  % Test update from so3
-                 frame_so3_new = so3(testCase.eul2rotm_local([-5 -10 -15],'zyx','deg'), 'rotm');
+                 frame_so3_new = so3(testCase.eul2rotm_local([-5 -10 -15],'zyx','deg'));
                  origin_new = [9;8;7];
                  frame.update(frame_so3_new, origin_new');
                  testCase.verifyEqual(frame.R, frame_so3_new.rotm, 'AbsTol', testCase.Tol);
@@ -844,13 +844,13 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
                 % Verify class
                 testCase.verifyClass(frame_quat, 'quaternion');
                 % Verify value by converting back to rotation matrix
-                testCase.verifyEqual(rotmat(frame_quat, 'frame'), R_arb, 'AbsTol', testCase.Tol);
+                testCase.verifyEqual(rotmat(frame_quat, 'point'), R_arb, 'AbsTol', testCase.Tol);
     
                 % Test update from quaternion
-                q_new = quaternion(testCase.eul2rotm_local([2 4 6],'zyx','deg'), 'rotmat', 'frame');
+                q_new = quaternion(testCase.eul2rotm_local([2 4 6],'zyx','deg'), 'rotmat', 'point');
                 origin_new = [1;4;9];
                 frame.update(q_new, origin_new'); % Update uses rotmat(q,'frame') internally
-                testCase.verifyEqual(frame.R, rotmat(q_new,'frame'), 'AbsTol', testCase.Tol);
+                testCase.verifyEqual(frame.R, rotmat(q_new,'point'), 'AbsTol', testCase.Tol);
                 testCase.verifyEqual(frame.origin, origin_new, 'AbsTol', testCase.Tol);
             catch me
                 if strcmp(me.identifier, 'MATLAB:UndefinedFunction') && contains(me.message, 'quaternion')
