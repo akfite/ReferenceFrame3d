@@ -41,7 +41,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(1,1) ReferenceFrame3d
                 rot
-                origin(1,3) double = [0 0 0]
+                origin(1,3) double {mustBeReal, mustBeFinite} = [0 0 0]
             end
 
             sz = size(rot);
@@ -108,8 +108,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         function obj = from_coplanar_vectors(v1, v2, origin)
             %FROM_COPLANAR_VECTORS Create a frame using a coplanar vector pair.
             arguments
-                v1(1,3) double
-                v2(1,3) double
+                v1(1,3) double {mustBeReal, mustBeFinite}
+                v2(1,3) double {mustBeReal, mustBeFinite}
                 origin(1,3) double = [0 0 0]
             end
 
@@ -126,8 +126,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         function obj = from_euler(angles, origin, opts)
             %FROM_EULER Create a transform from zyx euler sequence.
             arguments
-                angles(1,3) double
-                origin(1,3) double = [0 0 0]
+                angles(1,3) double {mustBeReal, mustBeFinite}
+                origin(1,3) double {mustBeReal, mustBeFinite} = [0 0 0]
                 opts.Sequence(1,3) char = 'zyx'
                 opts.Units(1,1) string = "deg"
             end
@@ -152,9 +152,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         function obj = from_view_axis(observer, target, up)
             %FROM_VIEW_AXIS Create a transform for an observer's perspective.
             arguments
-                observer(1,3) double % position
-                target(1,3) double % position
-                up(1,3) double % up at observer
+                observer(1,3) double {mustBeReal, mustBeFinite} % position
+                target(1,3) double {mustBeReal, mustBeFinite} % position
+                up(1,3) double {mustBeReal, mustBeFinite} % up at observer
             end
 
             z = target - observer; % viewing axis
@@ -170,7 +170,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         function obj = ecef2ned(lla, angleunit)
             %ECEF2NED Local-level North-East-Down frame w.r.t. ECEF.
             arguments
-                lla(1,3) double % alt w.r.t. the WGS84 ellipsoid, meters
+                lla(1,3) double {mustBeReal, mustBeFinite} % alt w.r.t. the WGS84 ellipsoid, meters
                 angleunit(1,1) string = "deg"
             end
 
