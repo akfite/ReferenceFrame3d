@@ -142,7 +142,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 ax(1,1) matlab.graphics.axis.Axes = gca
             end
 
-            obj = ReferenceFrame3d.from_lookat(...
+            obj = ReferenceFrame3d.from_view_axis(...
                 campos(ax), ...
                 camtarget(ax), ...
                 camup(ax));
@@ -383,27 +383,58 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function rotate_euler(this, angles, opts)
-            %ROTATE_EULER Rotate with an euler sequence.
+            %ROTATE_EULER Rotate by an euler sequence.
             arguments
                 this(1,1) ReferenceFrame3d
-                angles(1,3) double
-                opts.Sequence(1,3) char = 'zyx'
+                angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
+                opts.Sequence(1,:) char = 'zyx' % yaw-pitch-roll
                 opts.Units(1,1) string = "deg"
             end
 
-            units = validatestring(opts.Units, ["deg","degrees","rad","radians"]);
-            sequence = validatestring(opts.Sequence, {'zyx','zxy','yzx','yxz','xzy','xyz'});
-
-            if contains(units,"deg")
-                angles = angles * pi/180;
+            sequence = lower(opts.Sequence);
+            assert(numel(angles) == numel(opts.Sequence), ...
+                'Expected the number of angles (%d) to match number of rotations (%d).',...
+                numel(angles), numel(opts.Sequence));
+            assert(all(ismember(opts.Sequence, 'xyz')), ...
+                'Rotations may only be specified as only ''x'', ''y'', or ''z''');
+            validatestring(opts.Units,["deg","degrees","rad","radians"]);
+            
+            if any(strcmpi(opts.Units, ["deg", "degrees"]))
+                angles_rad = angles * pi/180;
+            else
+                angles_rad = angles;
             end
 
-            T = makehgtform(...
-                [sequence(1) 'rotate'], angles(1), ...
-                [sequence(2) 'rotate'], angles(2), ...
-                [sequence(3) 'rotate'], angles(3));
+            T_sequence = eye(4);
 
-            this.T = this.T * T;
+            for i = 1:numel(opts.Sequence)
+                axis_char = sequence(i);
+                angle_val = angles_rad(i);
+                
+                c = local_fixup(cos(angle_val));
+                s = local_fixup(sin(angle_val));
+
+                T_axis = eye(4);
+                switch axis_char
+                    case 'x', T_axis(2:3, 2:3) = [c, -s; s, c];
+                    case 'y', T_axis([1,3], [1,3]) = [c, s; -s, c];
+                    case 'z', T_axis(1:2, 1:2) = [c, -s; s, c];
+                end
+                
+                T_sequence = T_sequence * T_axis;
+            end
+
+            this.T = this.T * T_sequence;
+
+            function x_fixed = local_fixup(x)
+                % snap to 0, 1, -1 (if very close) to improve numerical stability
+                x_fixed = x;
+                snap_threshold = 2*eps;
+                if abs(x) < snap_threshold, x_fixed = 0.0;
+                elseif abs(x - 1.0) < snap_threshold, x_fixed = 1.0;
+                elseif abs(x + 1.0) < snap_threshold, x_fixed = -1.0;
+                end
+            end
         end
 
         function new = compose(this)
@@ -621,7 +652,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             this.plot(...
                 'Parent',ax, ...
                 'TextLabels', true, ...
-                'LineLength', local_find_max_origin_dist(this)/4);
+                'LineLength', max(1,local_find_max_origin_dist(this)/4));
 
             hold(ax,'on');
             axis(ax, 'equal');
@@ -648,6 +679,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.LineLength(1,3) double = 1
                 opts.Arrowheads(1,3) matlab.lang.OnOffSwitchState = true
                 opts.TextLabels(1,3) matlab.lang.OnOffSwitchState = false
+                opts.ConnectFrames(1,1) matlab.lang.OnOffSwitchState = true
                 opts.Detach(1,1) logical = false % create no ties to original objects
                 opts.Delete(1,1) logical = false % delete and return early
             end
@@ -675,6 +707,17 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 delete(objs(i).h_plot_group);
                 if opts.Delete, continue; end
                 objs(i).h_plot_group = hggroup('Parent', parent, 'Tag', 'RF3D_BASIS_GROUP');
+
+                if opts.ConnectFrames && i < numel(objs)
+                    % draw an arrow connecting the current frame to the next
+                    quiver3(0, 0, 0, ...
+                        objs(i+1).origin(1), objs(i+1).origin(2), objs(i+1).origin(3), ...
+                        'Parent', objs(i).h_plot_group, ...
+                        'Color', 'k', ...
+                        'AutoScale', 'off', ...
+                        'Clipping', 'off', ...
+                        'Tag', 'RF3D_FRAME_CONNECTOR');
+                end
     
                 if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
                     % interleave NaNs to plot all basis vectors as a single object
