@@ -2,7 +2,7 @@ function demo_03_ReferenceFrame3d()
 
     %% Initialize reference frames
     
-    % we want our plot to appear with origin = (0,0,0) at our local reference point with
+    % we want our plot to appear with origin = [0,0,0] at our local reference point with
     % basis vectors aligned to ENU.  since we are basically just saying that E=[1 0 0],
     % N=[0 1 0], and U=[0 0 1], this is just the identity transform (until we add more frames)
     axis_enu = ReferenceFrame3d();
