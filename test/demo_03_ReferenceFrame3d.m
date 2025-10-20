@@ -5,25 +5,21 @@ function demo_03_ReferenceFrame3d()
     % we want our plot to appear with origin = [0,0,0] at our local reference point with
     % basis vectors aligned to ENU.  since we are basically just saying that E=[1 0 0],
     % N=[0 1 0], and U=[0 0 1], this is just the identity transform (until we add more frames)
-    axis_enu = ReferenceFrame3d();
-    axis_enu.name = 'ENU';
+    axis_enu = ReferenceFrame3d(Name="ENU");
 
     % to give our identity transform (above) meaning, we need to define how to go from ENU 
     % to the ECEF frame. so we need to describe where the ECEF frame is with respect to (FROM) 
     % the ENU frame (hence the call to inv()).  this ENU frame is fixed to the Earth.
     refpoint = [39.22 -121.815 1000];
-    ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, "degrees"));
-    ecef.name = 'ECEF';
+    ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, Units="degrees", Name="ECEF"));
 
     % then describe where the local-level NED frame is with respect to ECEF (this is the
     % local-level frame attached to our aircraft and will change at every timestep)
-    ned = ReferenceFrame3d.ecef2ned([37, -119, 1e3], "degrees");
-    ned.name = 'NED';
+    ned = ReferenceFrame3d.ecef2ned([37, -119, 1e3], Units="degrees", Name="NED");
 
     % and where the body frame is with respect to NED (it's co-located with NED and we'll
     % initialize the orientation to be 30-degrees yaw, 10-degrees pitch)
-    body = ReferenceFrame3d.from_euler([0 0 0], [0 0 0], Units="degrees");
-    body.name = 'BODY';
+    body = ReferenceFrame3d.from_euler([0 0 0], [0 0 0], Units="degrees", Name="BODY");
 
     %% Set the reference frame hierarchy with method hgtransform()
 

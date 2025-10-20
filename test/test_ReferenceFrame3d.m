@@ -777,7 +777,7 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
 
         function testCustomDisplayScalar(testCase)
             % Test getFooter custom display for a scalar object
-            frame = ReferenceFrame3d.from_euler([10 -20 30], [1 2 3]);
+            frame = ReferenceFrame3d.from_euler([10 -20 30], [1 2 3]); %#ok<NASGU>
             disp_text = evalc('disp(frame)'); % Capture display output
 
             % Check for expected keywords/patterns
@@ -797,7 +797,7 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
             % Test getFooter custom display for a vector object (composed)
             frame1 = ReferenceFrame3d.from_euler([10 -20 30], [1 2 3]);
             frame2 = ReferenceFrame3d.from_euler([-5 15 -10], [0.1 0.2 0.3]);
-            frame_vector = [frame1; frame2]; % Column vector triggers compose in display
+            frame_vector = [frame1; frame2]; %#ok<NASGU> % Column vector triggers compose in display
 
             disp_text = evalc('disp(frame_vector)'); % Capture display output
 
@@ -808,7 +808,7 @@ classdef test_ReferenceFrame3d < matlab.unittest.TestCase
             % Check for composed values (origin, orientation) - harder to predict exactly
             % but should still have the general structure
             composed_frame = compose(frame1, frame2); % Explicitly compose
-            [y,p,r] = composed_frame.as_euler("deg");
+            [y,~,~] = composed_frame.as_euler("deg");
 
             testCase.verifySubstring(disp_text, 'origin (in base frame)');
             testCase.verifySubstring(disp_text, sprintf('%14.9f', composed_frame.origin(1)));

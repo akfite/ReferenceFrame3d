@@ -121,10 +121,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 origin(1,3) double {mustBeReal, mustBeFinite} = [0 0 0]
                 opts.Sequence(1,3) char = 'zyx'
                 opts.Units(1,1) string = "deg"
+                opts.Name(1,1) string = missing
             end
 
-            obj = ReferenceFrame3d(eye(3), origin);
-            obj.rotate_euler(angles, "Units", opts.Units, "Sequence", opts.Sequence);
+            obj = ReferenceFrame3d(eye(3), origin, "Name", opts.Name);
+            obj.rotate_euler(angles, ...
+                "Units", opts.Units, ...
+                "Sequence", opts.Sequence);
         end
 
         function obj = from_campos(ax, opts)
@@ -754,8 +757,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                         plot_arrowhead(objs(i).h_plot_group, sz(j), opts.Colors(j), j);
                     end
                     if opts.TextLabels(j)
-                        if ~isempty(objs(i).name)
-                            name = ['_{' objs(i).name '}'];
+                        if ~ismissing(objs(i).name)
+                            name = ['_{' objs(i).name{1} '}'];
                         else
                             name = '';
                         end
