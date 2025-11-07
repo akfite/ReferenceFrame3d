@@ -43,7 +43,7 @@ function demo_02_ReferenceFrame3d()
     model.rotate_euler([-90, -5, 30]);
 
     % and for debugging, we can always add back the basis vectors if we want!
-    % frames.plot('LineLength',1.5,'TextLabels',true); % uncomment
+    frames.plot('LineLength',1.5,'TextLabels',true); % uncomment
 
     %% animation loop (make the f22 orbit in a circle)
     clock = tic;

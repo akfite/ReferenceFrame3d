@@ -1,6 +1,7 @@
 # ReferenceFrame3d
 
 [![View on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/XXXXXX-referenceframe3d) 
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=akfite/ReferenceFrame3d&file=ReferenceFrame3d.m)
 [![Unit Tests](https://github.com/akfite/ReferenceFrame3d/actions/workflows/matlab-ci.yml/badge.svg)](https://github.com/akfite/ReferenceFrame3d/actions/workflows/matlab-ci.yml)
 
 A MATLAB class to manage relationships between reference frames, particularly when plotting 3D scenes.  Intended for tracking, robotics, computer vision, and related fields.
@@ -79,6 +80,7 @@ world.translate([0.5 0.5 0.25])
 <img src="./assets/05_twoframes.png"/>
 
 ### 3. Animate a sequence of nested reference frames
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=akfite/ReferenceFrame3d&file=test/demo_01_ReferenceFrame3d.m)
 
 See [demo_01_ReferenceFrame3d](./test/demo_01_ReferenceFrame3d.m) to explore a more complex 3D plotting scenario with multiple nested reference frames rotating with respect to one another.
 
@@ -86,15 +88,77 @@ See [demo_01_ReferenceFrame3d](./test/demo_01_ReferenceFrame3d.m) to explore a m
 
 ### 4. Animate using only hgtransforms (only plot user data)
 
-See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a more practical use-case, where the class is used "behind the scenes" to animate a CAD model.  In this case the class is used only to set up and update `hgtransform` objects.
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=akfite/ReferenceFrame3d&file=test/demo_02_ReferenceFrame3d.m)
 
-> **Note:** there is no requirement to use any plotting methods with this class.  It can also be used purely as a numerical tool.
+See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a more practical use-case, where the class is used "behind the scenes" to animate a CAD model.  In this case the class is used only to set up and update `hgtransform` objects.
 
 <img src="./assets/02_demo.gif"/>
 
-### 5. Set up an axis in the local ENU frame & transform ECEF, NED, and body frame data sources automatically
+### 5. Practical example (Navigation/Tracking)
 
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=akfite/ReferenceFrame3d&file=test/demo_03_ReferenceFrame3d.m)
 
+In [demo_03_ReferenceFrame3d](./test/demo_03_ReferenceFrame3d.m) we set up a collection of frames commonly used for navigation and tracking:
+
+* Axis (**ENU**) frame: we want our data to be displayed in the axis in East-North-Up (ENU) coordinates using a fixed reference point
+* **ECEF** frame: fixed at the center of the Earth and rotates with the Earth
+* **NED** frame: the local-level North-East-Down frame that moves with our aircraft 
+* **Body** frame: the orientation of the aircraft with respect to local-level
+
+Using `ReferenceFrame3d`, it's simple to set up a scenario like this (copying some code from demo here):
+
+```matlab
+r = 6378137; % earth equatorial radius, meters
+refpoint = [30 -119 0]; % axis origin point (lat lon alt)
+
+% we want our plot to appear with origin = (0,0,0) at our fixed reference point with
+% basis vectors aligned to ENU.  since we are basically just saying that E=[1 0 0],
+% N=[0 1 0], and U=[0 0 1], this is just the identity transform (until we add more frames)
+axis_enu = ReferenceFrame3d(Name="ENU");
+
+% to give our identity transform (above) meaning, we need to define how to go from ENU 
+% to the ECEF frame. so we need to describe where the ECEF frame is with respect to (FROM) 
+% the ENU frame (hence the call to inv())
+ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, Units="degrees", Name="ECEF"));
+
+% then describe where the local-level NED frame is with respect to ECEF (this is the
+% local-level frame attached to our aircraft and will change at every timestep)
+platform_pos = [35, -117, 1e3];
+ned = ReferenceFrame3d.ecef2ned(platform_pos, Units="degrees", Name="NED");
+
+% and where the body frame is with respect to NED (it's co-located with NED and we'll
+% initialize the orientation to be 30-degrees yaw, 10-degrees pitch)
+body = ReferenceFrame3d.from_euler([30 10 0], [0 0 0], Units="degrees", Name="BODY");
+
+%% Set the reference frame hierarchy with method hgtransform()
+hfig = figure('units','normalized','position',[0.05 0.05 0.9 0.85]);
+ax = axes('parent', hfig, 'nextplot', 'add');
+
+frames = [axis_enu, ecef, ned, body];
+frames.hgtransform(ax);
+
+% plot a simple sphere to represent the Earth
+[x,y,z] = sphere(50);
+x = x * r;
+y = y * r;
+z = z * r;
+
+% our sphere is defined in the ECEF frame, so parent to the ECEF frame
+surf(x,y,z, ...
+    'Parent', ecef.hgtransform(), ...
+    'FaceAlpha',0.5, 'Clipping', 'off', 'EdgeAlpha', 0.2);
+plot(frames, 'LineLength', r/3, 'TextLabels', true);
+axis(ax,'equal');
+axis(ax,'off');
+```
+
+Note that by assigning each frame a `name` and calling `plot` with `TextLabels=true`, we'll see the name of each frame next to each basis vector arrow.  You should see a figure like this:
+
+<img src="./assets/global_frames.png"/>
+
+Using these frames, we can import data from a variety of sources and just plot them straight into the axis.  In this example we use terrain data
+
+<img src="./assets/terrainview.jpg"/>
 
 # API Overview
 
@@ -103,9 +167,7 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 ### Read/Write
 *   `T` (4x4 double): The homogeneous transformation matrix.
     * public access
-    * transform is validated before setting
     * updates hgtransform object when set (if one exists)
-    * recommend setting this property via method `update(rot, origin)` or other methods for rotation, translation, etc
 
 ### Read-Only
 *   `R` (3x3 double, Dependent): Rotation submatrix.
@@ -118,19 +180,18 @@ See [demo_02_ReferenceFrame3d](./test/demo_02_ReferenceFrame3d.m) to explore a m
 *   `ReferenceFrame3d()`: Default constructor (`eye(4)`).
 *   `ReferenceFrame3d(rot)`: Rotation-only constructor (or directly assign a 4x4 transform).
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
-*   `update(rot, origin)`: Configure an existing object.
+*   `ReferenceFrame3d(____, Name="TEXT")`: Assign a text label during construction as the last argument.
 
 > **Note:** `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
 
 #### Static Constructors (Utility)
-*   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
-*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
-*   `ReferenceFrame3d.from_euler(yaw, pitch, roll, origin, angleunit)`: Build a frame from an euler zyx sequence.
-*   `ReferenceFrame3d.from_campos(ax)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
-*   `ReferenceFrame3d.from_view_axis(observer, target, up)`: Build a frame from any camera perspective (with `+z` as the view axis).
-*   `ReferenceFrame3d.ecef2ned(lat, lon, alt, angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level North-East-Down frame.
-*   `ReferenceFrame3d.ecef2enu(lat, lon, alt, angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level East-North-Up frame.
-
+*   `ReferenceFrame3d.from_point_normal(point, normal, opts...)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
+*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin, opts...)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
+*   `ReferenceFrame3d.from_euler(angles, origin, opts...)`: Build a frame from an euler sequence.
+*   `ReferenceFrame3d.from_campos(ax, opts...)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
+*   `ReferenceFrame3d.from_view_axis(observer, target, up, opts...)`: Build a frame from any camera perspective (with `+z` as the view axis).
+*   `ReferenceFrame3d.ecef2ned([lat, lon, alt], opts...)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level North-East-Down frame.
+*   `ReferenceFrame3d.ecef2enu([lat, lon, alt], opts...)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level East-North-Up frame.
 
 ### Transformations
 

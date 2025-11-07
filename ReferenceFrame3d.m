@@ -3,6 +3,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         & matlab.mixin.SetGet
     
     properties
+        name(1,1) string = missing % optional text label to be used with plot()
         T(4,4) double = eye(4) % homogeneous transform (rotation & translation)
     end
 
@@ -22,58 +23,55 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Construct/Update
     methods
-        function this = ReferenceFrame3d(rot, origin)
+        function this = ReferenceFrame3d(rotation, origin, opts)
             %REFERENCEFRAME3D Constructor.
             arguments
-                rot = eye(4)
-                origin(1,3) double = [0 0 0]
-            end
-            this.update(rot, origin);
-        end
-
-        function this = update(this, rot, origin)
-            %UPDATE Set the state of an existing object.
-            arguments
-                this(1,1) ReferenceFrame3d
-                rot
-                origin(1,3) double = [0 0 0]
+                rotation = eye(3) % supports various types
+                origin(1,3) double {mustBeReal, mustBeFinite} = [0; 0; 0]
+                opts.Name(1,1) string = missing
             end
 
-            sz = size(rot);
+            sz = size(rotation);
 
-            if isscalar(rot)
-                switch string(class(rot))
+            if isscalar(rotation)
+                switch string(class(rotation))
                     case "ReferenceFrame3d"
-                        T = rot.T; % only transform; no handless
+                        T = rotation.T;
+                        this.name = rotation.name;
                     case "quaternion"
-                        T = rotmat(quat,"frame");
-                        T(4,4) = 1;
+                        T = rotmat(rotation,"point");
+                        T(4,4) = 1; % 3x3 -> 4x4
+                        T(1:3,4) = origin;
                     case "se3"
-                        T = tform(rot);
+                        T = tform(rotation);
                     case "so3"
-                        T = tform(rot);
+                        T = tform(rotation);
                         T(1:3,4) = origin;
                     otherwise
-                        error('Unsupported scalar type %s', class(rot));
+                        error('Unsupported scalar type %s', class(rotation));
                 end
             elseif isequal(sz, [4 4]) % homogeneous transform (4x4 matrix)
-                T = rot;
+                T = rotation;
             elseif isequal(sz, [3 3]) % DCM + origin
-                rot(4,4) = 1;
-                rot(1:3,4) = origin;
-                T = rot;
+                rotation(4,4) = 1;
+                rotation(1:3,4) = origin;
+                T = rotation;
+            else
+                error('Expected rotation to be a 3x3 or 4x4 matrix.');
             end
 
             this.T = T; % triggers set.T()
+            this.name = opts.Name;
         end
     end
 
     methods (Static)
-        function obj = from_point_normal(point, normal)
+        function obj = from_point_normal(point, normal, opts)
             %FROM_POINT_NORMAL Creates a new frame to represent a plane.
             arguments
                 point(1,3) double {mustBeReal, mustBeFinite}
                 normal(1,3) double {mustBeReal, mustBeFinite}
+                opts.Name(1,1) string = "normal"
             end
 
             % pick any arbitrary orthogonal x and y vectors
@@ -95,15 +93,16 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             T = [x_basis; y_basis; z_basis]';
             T(4,4) = 1;
             T(1:3,4) = point;
-            obj = ReferenceFrame3d(T);
+            obj = ReferenceFrame3d(T, "Name", opts.Name);
         end
 
-        function obj = from_coplanar_vectors(v1, v2, origin)
+        function obj = from_coplanar_vectors(v1, v2, origin, opts)
             %FROM_COPLANAR_VECTORS Create a frame using a coplanar vector pair.
             arguments
-                v1(1,3) double
-                v2(1,3) double
+                v1(1,3) double {mustBeReal, mustBeFinite}
+                v2(1,3) double {mustBeReal, mustBeFinite}
                 origin(1,3) double = [0 0 0]
+                opts.Name(1,1) string = "coplanar"
             end
 
             x_basis = v1;
@@ -113,40 +112,46 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             dcm = [x_basis(:) y_basis(:) z_basis(:)];
             dcm = dcm ./ vecnorm(dcm, 2, 1);
 
-            obj = ReferenceFrame3d(dcm, origin);
+            obj = ReferenceFrame3d(dcm, origin, "Name", opts.Name);
         end
 
         function obj = from_euler(angles, origin, opts)
             %FROM_EULER Create a transform from zyx euler sequence.
             arguments
-                angles(1,3) double
-                origin(1,3) double = [0 0 0]
+                angles(1,3) double {mustBeReal, mustBeFinite}
+                origin(1,3) double {mustBeReal, mustBeFinite} = [0 0 0]
                 opts.Sequence(1,3) char = 'zyx'
                 opts.Units(1,1) string = "deg"
+                opts.Name(1,1) string = missing
             end
 
-            obj = ReferenceFrame3d(eye(3), origin);
-            obj.rotate_euler(angles, 'Units', opts.Units, 'Sequence', opts.Sequence);
+            obj = ReferenceFrame3d(eye(3), origin, "Name", opts.Name);
+            obj.rotate_euler(angles, ...
+                "Units", opts.Units, ...
+                "Sequence", opts.Sequence);
         end
 
-        function obj = from_campos(ax)
+        function obj = from_campos(ax, opts)
             %FROM_CAMPOS Create a transform for the current camera perspective.
             arguments
                 ax(1,1) matlab.graphics.axis.Axes = gca
+                opts.Name(1,1) string = "campos"
             end
 
-            obj = ReferenceFrame3d.from_lookat(...
+            obj = ReferenceFrame3d.from_view_axis(...
                 campos(ax), ...
                 camtarget(ax), ...
-                camup(ax));
+                camup(ax), ...
+                "Name", opts.Name);
         end
 
-        function obj = from_view_axis(observer, target, up)
+        function obj = from_view_axis(observer, target, up, opts)
             %FROM_VIEW_AXIS Create a transform for an observer's perspective.
             arguments
-                observer(1,3) double % position
-                target(1,3) double % position
-                up(1,3) double % up at observer
+                observer(1,3) double {mustBeReal, mustBeFinite} % position
+                target(1,3) double {mustBeReal, mustBeFinite} % position
+                up(1,3) double {mustBeReal, mustBeFinite} % up at observer
+                opts.Name(1,1) string = "view axis"
             end
 
             z = target - observer; % viewing axis
@@ -156,23 +161,24 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             dcm = [x(:) y(:) z(:)];
             dcm = dcm ./ vecnorm(dcm, 2, 1); % make unit vectors
 
-            obj = ReferenceFrame3d(dcm, observer);
+            obj = ReferenceFrame3d(dcm, observer, "Name", opts.Name);
         end
 
-        function obj = ecef2ned(lla, angleunit)
+        function obj = ecef2ned(lla, opts)
             %ECEF2NED Local-level North-East-Down frame w.r.t. ECEF.
             arguments
-                lla(1,3) double % alt w.r.t. the WGS84 ellipsoid, meters
-                angleunit(1,1) string = "deg"
+                lla(1,3) double {mustBeReal, mustBeFinite} % alt w.r.t. the WGS84 ellipsoid, meters
+                opts.Units(1,1) string = "deg"
+                opts.Name(1,1) string = "NED"
             end
 
-            angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
+            angle_unit = validatestring(opts.Units, ["deg","degrees","rad","radians"]);
 
             lat = lla(:,1);
             lon = lla(:,2);
             alt = lla(:,3);
 
-            if contains(angleunit,"deg")
+            if contains(angle_unit, "deg")
                 lat = lat * pi/180;
                 lon = lon * pi/180;
             end
@@ -197,7 +203,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             % convert geodetic position to ECEF to set the origin
             pos_ecef = local_lla2ecef();
-            obj = ReferenceFrame3d(C_E2L, pos_ecef);
+            obj = ReferenceFrame3d(C_E2L, pos_ecef, "Name", opts.Name);
 
             function pos_ecef = local_lla2ecef()
                 %LOCAL_LLA2ECEF Helper function to convert geodetic coordinates to ECEF.
@@ -218,14 +224,15 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function obj = ecef2enu(lla, angleunit)
+        function obj = ecef2enu(lla, opts)
             %ECEF2ENU Local-level East-North-Up frame w.r.t. ECEF.
             arguments
                 lla(1,3) double % alt w.r.t. the WGS84 ellipsoid, meters
-                angleunit(1,1) string = "deg"
+                opts.Units(1,1) string = "deg"
+                opts.Name(1,1) string = "ENU"
             end
 
-            obj = ReferenceFrame3d.ecef2ned(lla, angleunit);
+            obj = ReferenceFrame3d.ecef2ned(lla, "Name", opts.Name, "Units", opts.Units);
             obj.rotate_dcm(...
                 [ ...
                     0 1 0
@@ -374,27 +381,58 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
         end
 
         function rotate_euler(this, angles, opts)
-            %ROTATE_EULER Rotate with an euler sequence.
+            %ROTATE_EULER Rotate by an euler sequence.
             arguments
                 this(1,1) ReferenceFrame3d
-                angles(1,3) double
-                opts.Sequence(1,3) char = 'zyx'
+                angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
+                opts.Sequence(1,:) char = 'zyx' % yaw-pitch-roll
                 opts.Units(1,1) string = "deg"
             end
 
-            units = validatestring(opts.Units, ["deg","degrees","rad","radians"]);
-            sequence = validatestring(opts.Sequence, {'zyx','zxy','yzx','yxz','xzy','xyz'});
-
-            if contains(units,"deg")
-                angles = angles * pi/180;
+            sequence = lower(opts.Sequence);
+            assert(numel(angles) == numel(opts.Sequence), ...
+                'Expected the number of angles (%d) to match number of rotations (%d).',...
+                numel(angles), numel(opts.Sequence));
+            assert(all(ismember(opts.Sequence, 'xyz')), ...
+                'Rotations may only be specified as only ''x'', ''y'', or ''z''');
+            validatestring(opts.Units,["deg","degrees","rad","radians"]);
+            
+            if any(strcmpi(opts.Units, ["deg", "degrees"]))
+                angles_rad = angles * pi/180;
+            else
+                angles_rad = angles;
             end
 
-            T = makehgtform(...
-                [sequence(1) 'rotate'], angles(1), ...
-                [sequence(2) 'rotate'], angles(2), ...
-                [sequence(3) 'rotate'], angles(3));
+            T_sequence = eye(4);
 
-            this.T = this.T * T;
+            for i = 1:numel(opts.Sequence)
+                axis_char = sequence(i);
+                angle_val = angles_rad(i);
+                
+                c = local_fixup(cos(angle_val));
+                s = local_fixup(sin(angle_val));
+
+                T_axis = eye(4);
+                switch axis_char
+                    case 'x', T_axis(2:3, 2:3) = [c, -s; s, c];
+                    case 'y', T_axis([1,3], [1,3]) = [c, s; -s, c];
+                    case 'z', T_axis(1:2, 1:2) = [c, -s; s, c];
+                end
+                
+                T_sequence = T_sequence * T_axis;
+            end
+
+            this.T = this.T * T_sequence;
+
+            function x_fixed = local_fixup(x)
+                % snap to 0, 1, -1 (if very close) to improve numerical stability
+                x_fixed = x;
+                snap_threshold = 2*eps;
+                if abs(x) < snap_threshold, x_fixed = 0.0;
+                elseif abs(x - 1.0) < snap_threshold, x_fixed = 1.0;
+                elseif abs(x + 1.0) < snap_threshold, x_fixed = -1.0;
+                end
+            end
         end
 
         function new = compose(this)
@@ -520,32 +558,28 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             % use R_base_to_local (transpose of the frame's R) for calculations
             % consistent with many standard derivations.
             R = this.R';
-
-            r11 = R(1,1); r12 = R(1,2); r13 = R(1,3);
-            r21 = R(2,1); r22 = R(2,2); r23 = R(2,3);
-            r33 = R(3,3);
-
+            
             % define a tolerance slightly less than 1 for gimbal lock check
             gimbal_tol = 1 - 1e-9;
 
             % check for gimbal lock (pitch = ±90°) using R'(1,3)
-            if abs(r13) > gimbal_tol
+            if abs(R(1,3)) > gimbal_tol
                 % in gimbal lock, yaw and roll are not uniquely determined.
                 % set yaw to 0 by convention and calculate roll accordingly.
                 yaw = 0;
 
-                if r13 < 0 % corresponds to pitch = +90°
+                if R(1,3) < 0 % corresponds to pitch = +90°
                     pitch = pi/2;
-                    roll = atan2(r21, r22);
+                    roll = atan2(R(2,1), R(2,2));
                 else % corresponds to pitch = -90°
                     pitch = -pi/2;
-                    roll = -atan2(r21, r22); % keep based on common gimbal lock solutions
+                    roll = -atan2(R(2,1), R(2,2)); % keep based on common gimbal lock solutions
                 end
             else
                 % normal case - no gimbal lock
-                pitch = asin(-r13); % pitch = asin(-R'(1,3))
-                yaw = atan2(r12, r11); % yaw = atan2(R'(1,2), R'(1,1))
-                roll = atan2(r23, r33); % roll = atan2(R'(2,3), R'(3,3))
+                pitch = asin(-R(1,3)); % pitch = asin(-R'(1,3))
+                yaw = atan2(R(1,2), R(1,1)); % yaw = atan2(R'(1,2), R'(1,1))
+                roll = atan2(R(2,3), R(3,3)); % roll = atan2(R'(2,3), R'(3,3))
             end
 
             % convert to requested units
@@ -567,7 +601,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(1,1) ReferenceFrame3d
             end
-            tform = se3(cat(3, this.T));
+            tform = se3(this.T);
         end
 
         function rot = so3(this)
@@ -575,7 +609,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(1,1) ReferenceFrame3d
             end
-            rot = so3(cat(3, this.R));
+            rot = so3(this.R);
         end
 
         function q = quaternion(this)
@@ -583,7 +617,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(1,1) ReferenceFrame3d
             end
-            q = quaternion(cat(3, this.R));
+            q = quaternion(this.R,"rotmat","point");
         end
     end
 
@@ -606,13 +640,30 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 this(:,1) ReferenceFrame3d
             end
+
             hfig = figure;
             ax = axes('parent', hfig);
             grid(ax, 'on');
             box(ax, 'on');
-            this.plot('parent',ax);
+
+            % configure line lengths
+            this.plot(...
+                'Parent',ax, ...
+                'TextLabels', true, ...
+                'LineLength', max(1,local_find_max_origin_dist(this)/4));
+
             hold(ax,'on');
+            axis(ax, 'equal');
             view(ax,45,30);
+            rotate3d(ax,'on');
+
+            function maxr = local_find_max_origin_dist(frames)
+                maxr = nan;
+                for i = 1:numel(frames)
+                    composed = frames(1:i).compose();
+                    maxr = max(maxr, vecnorm(composed.origin));
+                end
+            end
         end
 
         function plot(objs, opts)
@@ -626,7 +677,15 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.LineLength(1,3) double = 1
                 opts.Arrowheads(1,3) matlab.lang.OnOffSwitchState = true
                 opts.TextLabels(1,3) matlab.lang.OnOffSwitchState = false
-                opts.Disable(1,1) logical = false % delete and return early
+                opts.ConnectFrames(1,1) matlab.lang.OnOffSwitchState = true
+                opts.Detach(1,1) logical = false % create no ties to original objects
+                opts.Delete(1,1) logical = false % delete and return early
+            end
+
+            if opts.Detach
+                for i = 1:numel(objs)
+                    objs(i) = ReferenceFrame3d(objs(i)); % overwrite with a copy
+                end
             end
 
             % create the transforms (if they don't already exist)
@@ -644,8 +703,18 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 % we may wish to plot other things to the reference frame transform,
                 % so let's organize the basis vector data under its own group
                 delete(objs(i).h_plot_group);
-                if opts.Disable, continue; end
+                if opts.Delete, continue; end
                 objs(i).h_plot_group = hggroup('Parent', parent, 'Tag', 'RF3D_BASIS_GROUP');
+
+                if opts.ConnectFrames && i < numel(objs)
+                    % draw an arrow connecting the current frame to the next
+                    line([0 objs(i+1).origin(1)], [0 objs(i+1).origin(2)], [0 objs(i+1).origin(3)], ...
+                        'Parent', objs(i).h_plot_group, ...
+                        'Color', 'k', ...
+                        'LineStyle', '--', ...
+                        'Clipping', 'off', ...
+                        'Tag', 'RF3D_FRAME_CONNECTOR');
+                end
     
                 if all(opts.LineWidth == opts.LineWidth(1)) && all(opts.Colors == opts.Colors(1))
                     % interleave NaNs to plot all basis vectors as a single object
@@ -688,8 +757,13 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                         plot_arrowhead(objs(i).h_plot_group, sz(j), opts.Colors(j), j);
                     end
                     if opts.TextLabels(j)
+                        if ~ismissing(objs(i).name)
+                            name = ['_{' objs(i).name{1} '}'];
+                        else
+                            name = '';
+                        end
                         text(sz(1)*(j==1), sz(2)*(j==2), sz(3)*(j==3), ...
-                            string([' ' basis_letter(j)]), ...
+                            string([' ' basis_letter(j) name]), ...
                             'Parent', objs(i).h_plot_group, ...
                             'Color', opts.Colors(j), ...
                             'HitTest','off', ...
@@ -707,7 +781,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             function plot_arrowhead(parent, base_length, color, basis)
                 %PLOT_ARROWHEAD Local function to plot a colored cone.
-                m = 20; n = 2;
+                m = 20; n = 2; headsz = 0.1;
                 theta = linspace(0, 2*pi, m);
                 R = linspace(0, 0.2*base_length, n);
                 [T, R] = meshgrid(theta, R);
@@ -715,16 +789,16 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 switch basis
                     case 1 % x
                         x = base_length - R;
-                        y = R.*.2.*sin(T);
-                        z = R.*.2.*cos(T);
+                        y = R.*headsz.*sin(T);
+                        z = R.*headsz.*cos(T);
                     case 2 % y
                         y = base_length - R;
-                        z = R.*.2.*sin(T);
-                        x = R.*.2.*cos(T);
+                        z = R.*headsz.*sin(T);
+                        x = R.*headsz.*cos(T);
                     case 3 % z
                         z = base_length - R;
-                        x = R.*.2.*sin(T);
-                        y = R.*.2.*cos(T);
+                        x = R.*headsz.*sin(T);
+                        y = R.*headsz.*cos(T);
                 end
 
                 surface(x, y, z, ...
