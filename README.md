@@ -114,25 +114,21 @@ refpoint = [30 -119 0]; % axis origin point (lat lon alt)
 % we want our plot to appear with origin = (0,0,0) at our fixed reference point with
 % basis vectors aligned to ENU.  since we are basically just saying that E=[1 0 0],
 % N=[0 1 0], and U=[0 0 1], this is just the identity transform (until we add more frames)
-axis_enu = ReferenceFrame3d();
-axis_enu.name = 'ENU';
+axis_enu = ReferenceFrame3d(Name="ENU");
 
 % to give our identity transform (above) meaning, we need to define how to go from ENU 
 % to the ECEF frame. so we need to describe where the ECEF frame is with respect to (FROM) 
 % the ENU frame (hence the call to inv())
-ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, "degrees"));
-ecef.name = 'ECEF';
+ecef = inv(ReferenceFrame3d.ecef2enu(refpoint, Units="degrees", Name="ECEF"));
 
 % then describe where the local-level NED frame is with respect to ECEF (this is the
 % local-level frame attached to our aircraft and will change at every timestep)
 platform_pos = [35, -117, 1e3];
-ned = ReferenceFrame3d.ecef2ned(platform_pos, "degrees");
-ned.name = 'NED';
+ned = ReferenceFrame3d.ecef2ned(platform_pos, Units="degrees", Name="NED");
 
 % and where the body frame is with respect to NED (it's co-located with NED and we'll
 % initialize the orientation to be 30-degrees yaw, 10-degrees pitch)
-body = ReferenceFrame3d.from_euler([30 10 0], [0 0 0], Units="degrees");
-body.name = 'BODY';
+body = ReferenceFrame3d.from_euler([30 10 0], [0 0 0], Units="degrees", Name="BODY");
 
 %% Set the reference frame hierarchy with method hgtransform()
 hfig = figure('units','normalized','position',[0.05 0.05 0.9 0.85]);
@@ -153,6 +149,7 @@ surf(x,y,z, ...
     'FaceAlpha',0.5, 'Clipping', 'off', 'EdgeAlpha', 0.2);
 plot(frames, 'LineLength', r/3, 'TextLabels', true);
 axis(ax,'equal');
+axis(ax,'off');
 ```
 
 Note that by assigning each frame a `name` and calling `plot` with `TextLabels=true`, we'll see the name of each frame next to each basis vector arrow.  You should see a figure like this:
