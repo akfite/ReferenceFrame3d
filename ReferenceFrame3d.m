@@ -61,6 +61,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
 
             this.T = T; % triggers set.T()
+            this.name = opts.Name;
         end
     end
 

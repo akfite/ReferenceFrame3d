@@ -185,7 +185,7 @@ Using these frames, we can import data from a variety of sources and just plot t
 *   `ReferenceFrame3d()`: Default constructor (`eye(4)`).
 *   `ReferenceFrame3d(rot)`: Rotation-only constructor (or directly assign a 4x4 transform).
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
-*   `ReferenceFrame3d(____, 'name')`: Assign a text label during construction as the last argument.
+*   `ReferenceFrame3d(____, "Name", 'name')`: Assign a text label during construction as the last argument.
 *   `update(rot, origin)`: Configure an existing object.
 
 > **Note:** `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
