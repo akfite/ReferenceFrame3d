@@ -167,9 +167,7 @@ Using these frames, we can import data from a variety of sources and just plot t
 ### Read/Write
 *   `T` (4x4 double): The homogeneous transformation matrix.
     * public access
-    * transform is validated before setting
     * updates hgtransform object when set (if one exists)
-    * recommend setting this property via method `update(rot, origin)` or other methods for rotation, translation, etc
 
 ### Read-Only
 *   `R` (3x3 double, Dependent): Rotation submatrix.
@@ -182,20 +180,18 @@ Using these frames, we can import data from a variety of sources and just plot t
 *   `ReferenceFrame3d()`: Default constructor (`eye(4)`).
 *   `ReferenceFrame3d(rot)`: Rotation-only constructor (or directly assign a 4x4 transform).
 *   `ReferenceFrame3d(rot, origin)`: Rotation & translation.
-*   `ReferenceFrame3d(____, "Name", 'name')`: Assign a text label during construction as the last argument.
-*   `update(rot, origin)`: Configure an existing object.
+*   `ReferenceFrame3d(____, Name="TEXT")`: Assign a text label during construction as the last argument.
 
 > **Note:** `rot` argument can be 4x4 T, 3x3 R, `ReferenceFrame3d`, `quaternion`, `se3`, or `so3`.
 
 #### Static Constructors (Utility)
-*   `ReferenceFrame3d.from_point_normal(point, normal)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
-*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
+*   `ReferenceFrame3d.from_point_normal(point, normal, opts...)`: Create a frame to represent a plane using `normal` as `+z` and `point` as the origin. 
+*   `ReferenceFrame3d.from_coplanar_vectors(v1, v2, origin, opts...)`: Create a frame to represent a plane using two coplanar vectors (as the `xy` plane in the new frame).
 *   `ReferenceFrame3d.from_euler(angles, origin, opts...)`: Build a frame from an euler sequence.
-*   `ReferenceFrame3d.from_campos(ax)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
-*   `ReferenceFrame3d.from_view_axis(observer, target, up)`: Build a frame from any camera perspective (with `+z` as the view axis).
-*   `ReferenceFrame3d.ecef2ned([lat, lon, alt], angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level North-East-Down frame.
-*   `ReferenceFrame3d.ecef2enu([lat, lon, alt], angleunit)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level East-North-Up frame.
-
+*   `ReferenceFrame3d.from_campos(ax, opts...)`: Create a frame for the camera's current perspective in an axis (with `+z` as the view axis).
+*   `ReferenceFrame3d.from_view_axis(observer, target, up, opts...)`: Build a frame from any camera perspective (with `+z` as the view axis).
+*   `ReferenceFrame3d.ecef2ned([lat, lon, alt], opts...)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level North-East-Down frame.
+*   `ReferenceFrame3d.ecef2enu([lat, lon, alt], opts...)`: Create a frame to transform from the Earth-Centered, Earth-Fixed (ECEF) to local-level East-North-Up frame.
 
 ### Transformations
 
