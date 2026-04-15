@@ -473,7 +473,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.Slice(1,2) char = 'xy'
                 opts.Offset(1,1) double = 0
                 opts.Tol(1,1) double = 1e-6
-                opts.Debug(1,1) logical = true
+                opts.Debug(1,1) logical = false
             end
 
             % select the 2 basis vectors that define the plane
