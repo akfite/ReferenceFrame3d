@@ -26,7 +26,7 @@ frame.show()
 > ℹ️ For plotting, you can call 3 different methods depending on your application: 
 > * `show()` creates a new figure, creates hgtransforms, and plots the basis vectors for each frame
 > * `plot()` creates hgtransforms and plots the basis vectors for each frame (into existing container)
-> * `hgtransform()` creates hgtransforms (or gets the current transform, if one exists already)
+> * `hgtransform()` only creates/gets hgtransforms (nothing visible in the axis)
 
 <img src="./assets/02_oneframe.png"/>
 
@@ -38,7 +38,7 @@ world = ReferenceFrame3d(eye(3), [0 0 0]);
 
 robot = ReferenceFrame3d(); % equivalent to above
 robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
-robot.rotate_euler([-45, 0, 0]); % yaw
+robot.reorient([-45, 0, 0]); % yaw
 % robot = ReferenceFrame3d.from_euler([-45, 0, 0], [0.5 1 0.5]); % one-line version
 ```
 
@@ -199,8 +199,9 @@ Using these frames, we can import data from a variety of sources and just plot t
 *   `base2local(vec)` or `base2local(x,y,z)`: Transform base coordinates to local.
 *   `translate(dxyz)`: Apply incremental translation.
 *   `reposition(new_pos)`: Set absolute origin.
+*   `reorient(angles, ...)`: Set absolute orientation with an Euler sequence.
 *   `rotate_dcm(dcm)`: Apply incremental rotation (3x3 DCM).
-*   `rotate_euler(y, p, r, angleunit)`: Apply incremental ZYX Euler rotation.
+*   `rotate_euler(angles, ...)`: Apply Euler rotation relative to current state.
 *   `compose(frame1, frame2, ...)`: Compose a sequence of frames.
 *   `mtimes(other)` or `*`: Overload for composition.
 *   `inv()`: Compute inverse transformation.
