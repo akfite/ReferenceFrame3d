@@ -370,17 +370,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
             this.T(1:3,4) = new_pos;
         end
-        
-        function rotate_dcm(this, dcm)
-            %ROTATE_DCM Rotate with a 3x3 Direction Cosine Matrix (DCM).
-            arguments
-                this(1,1) ReferenceFrame3d
-                dcm(3,3) double
-            end
-            T = dcm; %#ok<*PROPLC>
-            T(4,4) = 1; % 3x3 -> 4x4 with no translation
-            this.T = this.T * T;
-        end
 
         function rotate_euler(this, angles, opts)
             %ROTATE_EULER Rotate by an euler sequence.
@@ -437,6 +426,17 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 elseif abs(x + 1.0) < snap_threshold, x_fixed = -1.0;
                 end
             end
+        end
+
+        function rotate_dcm(this, dcm)
+            %ROTATE_DCM Rotate with a 3x3 Direction Cosine Matrix (DCM).
+            arguments
+                this(1,1) ReferenceFrame3d
+                dcm(3,3) double
+            end
+            T = dcm; %#ok<*PROPLC>
+            T(4,4) = 1; % 3x3 -> 4x4 with no translation
+            this.T = this.T * T;
         end
 
         function new = compose(this)
