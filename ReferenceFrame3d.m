@@ -172,13 +172,15 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 opts.Name(1,1) string = "NED"
             end
 
-            angle_unit = validatestring(opts.Units, ["deg","degrees","rad","radians"]);
+            assert(contains(opts.Units, ["deg","degrees","rad","radians"]), ...
+                'Unknown angle unit (expected "deg", "degrees", "rad", "radians"; got "%s")', ...
+                opts.Units);
 
             lat = lla(:,1);
             lon = lla(:,2);
             alt = lla(:,3);
 
-            if contains(angle_unit, "deg")
+            if contains(opts.Units, "deg")
                 lat = lat * pi/180;
                 lon = lon * pi/180;
             end
@@ -395,7 +397,9 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 numel(angles), numel(opts.Sequence));
             assert(all(ismember(opts.Sequence, 'xyz')), ...
                 'Rotations may only be specified as only ''x'', ''y'', or ''z''');
-            validatestring(opts.Units,["deg","degrees","rad","radians"]);
+            assert(contains(opts.Units, ["deg","degrees","rad","radians"]), ...
+                'Unknown angle unit (expected "deg", "degrees", "rad", "radians"; got "%s")', ...
+                opts.Units);
             
             if any(strcmpi(opts.Units, ["deg", "degrees"]))
                 angles_rad = angles * pi/180;
@@ -546,14 +550,16 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             R = this.R;
         end
 
-        function [yaw, pitch, roll] = as_euler(this, angleunit)
+        function [yaw, pitch, roll] = as_euler(this, angle_unit)
             %AS_EULER Express as euler angles (zyx sequence).
             arguments
                 this(1,1) ReferenceFrame3d
-                angleunit(1,1) string = "deg"
+                angle_unit(1,1) string = "deg"
             end
 
-            angleunit = validatestring(angleunit, ["deg","degrees","rad","radians"]);
+            assert(contains(angle_unit, ["deg","degrees","rad","radians"]), ...
+                'Unknown angle unit (expected "deg", "degrees", "rad", "radians"; got "%s")', ...
+                angle_unit);
 
             % use R_base_to_local (transpose of the frame's R) for calculations
             % consistent with many standard derivations.
@@ -583,7 +589,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
 
             % convert to requested units
-            if contains(angleunit, "deg")
+            if contains(angle_unit, "deg")
                 yaw = yaw * 180/pi;
                 pitch = pitch * 180/pi;
                 roll = roll * 180/pi;
