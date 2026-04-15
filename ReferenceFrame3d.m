@@ -367,7 +367,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments
                 obj(1,1) ReferenceFrame3d
                 angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
-                opts.Sequence(1,:) char = 'zyx' % yaw-pitch-roll
+                opts.Sequence(1,:) char = 'zyx'
                 opts.Units(1,1) string = "deg"
             end
 
