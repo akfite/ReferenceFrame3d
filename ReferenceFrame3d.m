@@ -353,15 +353,6 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function translate(obj, dxyz)
-            %TRANSLATE Shift the origin by an incremental amount.
-            arguments
-                obj(1,1) ReferenceFrame3d
-                dxyz(3,1) double {mustBeReal, mustBeFinite}
-            end
-            obj.T(1:3,4) = obj.T(1:3,4) + dxyz;
-        end
-
         function reposition(obj, new_pos)
             %REPOSITION Set a new origin.
             arguments
@@ -371,65 +362,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj.T(1:3,4) = new_pos;
         end
 
-        function rotate_euler(obj, angles, opts)
-            %ROTATE_EULER Rotate by an euler sequence.
-            arguments
-                obj(1,1) ReferenceFrame3d
-                angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
-                opts.Sequence(1,:) char = 'zyx' % yaw-pitch-roll
-                opts.Units(1,1) string = "deg"
-            end
-
-            sequence = lower(opts.Sequence);
-            assert(numel(angles) == numel(opts.Sequence), ...
-                'Expected the number of angles (%d) to match number of rotations (%d).',...
-                numel(angles), numel(opts.Sequence));
-            assert(all(ismember(opts.Sequence, 'xyz')), ...
-                'Rotations may only be specified as only ''x'', ''y'', or ''z''');
-            assert(contains(opts.Units, ["deg","degrees","rad","radians"]), ...
-                'Unknown angle unit (expected "deg", "degrees", "rad", "radians"; got "%s")', ...
-                opts.Units);
-            
-            if any(strcmpi(opts.Units, ["deg", "degrees"]))
-                angles_rad = angles * pi/180;
-            else
-                angles_rad = angles;
-            end
-
-            T_sequence = eye(4);
-
-            for i = 1:numel(opts.Sequence)
-                axis_char = sequence(i);
-                angle_val = angles_rad(i);
-                
-                c = local_fixup(cos(angle_val));
-                s = local_fixup(sin(angle_val));
-
-                T_axis = eye(4);
-                switch axis_char
-                    case 'x', T_axis(2:3, 2:3) = [c, -s; s, c];
-                    case 'y', T_axis([1,3], [1,3]) = [c, s; -s, c];
-                    case 'z', T_axis(1:2, 1:2) = [c, -s; s, c];
-                end
-                
-                T_sequence = T_sequence * T_axis;
-            end
-
-            obj.T = obj.T * T_sequence;
-
-            function x_fixed = local_fixup(x)
-                % snap to 0, 1, -1 (if very close) to improve numerical stability
-                x_fixed = x;
-                snap_threshold = 2*eps;
-                if abs(x) < snap_threshold, x_fixed = 0.0;
-                elseif abs(x - 1.0) < snap_threshold, x_fixed = 1.0;
-                elseif abs(x + 1.0) < snap_threshold, x_fixed = -1.0;
-                end
-            end
-        end
-
-        function assign_euler(obj, angles, opts)
-            %ASSIGN_EULER Explicitly assign rotation via a new euler sequence.
+        function reorient(obj, angles, opts)
+            %REORIENT Explicitly assign rotation via a new euler sequence.
             arguments
                 obj(1,1) ReferenceFrame3d
                 angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
@@ -441,6 +375,30 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             obj.rotate_euler(angles, ...
                 "Sequence", opts.Sequence, ...
                 "Units", opts.Units);
+        end
+
+        function translate(obj, dxyz)
+            %TRANSLATE Shift the origin by an incremental amount.
+            arguments
+                obj(1,1) ReferenceFrame3d
+                dxyz(3,1) double {mustBeReal, mustBeFinite}
+            end
+            obj.T(1:3,4) = obj.T(1:3,4) + dxyz;
+        end
+
+        function rotate_euler(obj, angles, opts)
+            %ROTATE_EULER Rotate by an euler sequence.
+            arguments
+                obj(1,1) ReferenceFrame3d
+                angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
+                opts.Sequence(1,:) char = 'zyx'
+                opts.Units(1,1) string = "deg"
+            end
+
+            T_sequence = ReferenceFrame3d.euler_transform(angles, ...
+                "Sequence", opts.Sequence, ...
+                "Units", opts.Units);
+            obj.T = obj.T * T_sequence;
         end
 
         function rotate_dcm(obj, dcm)
@@ -1040,6 +998,63 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 delete(objs(i).h_transform);
                 objs(i).h_transform = matlab.graphics.primitive.Transform.empty;
                 objs(i).h_plot_group = matlab.graphics.primitive.Group.empty;
+            end
+        end
+    end
+
+    %% Static helpers
+    methods
+        function T_sequence = euler_transform(angles, opts)
+            %EULER_TRANSFORM Get the transformation for an euler sequence.
+            arguments
+                angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
+                opts.Sequence(1,:) char = 'zyx' % yaw-pitch-roll
+                opts.Units(1,1) string = "deg"
+            end
+
+            sequence = lower(opts.Sequence);
+            assert(numel(angles) == numel(opts.Sequence), ...
+                'Expected the number of angles (%d) to match number of rotations (%d).',...
+                numel(angles), numel(opts.Sequence));
+            assert(all(ismember(opts.Sequence, 'xyz')), ...
+                'Rotations may only be specified as only ''x'', ''y'', or ''z''');
+            assert(contains(opts.Units, ["deg","degrees","rad","radians"]), ...
+                'Unknown angle unit (expected "deg", "degrees", "rad", "radians"; got "%s")', ...
+                opts.Units);
+            
+            if any(contains(opts.Units, ["deg", "degrees"]))
+                angles_rad = angles * pi/180;
+            else
+                angles_rad = angles;
+            end
+
+            T_sequence = eye(4);
+
+            for i = 1:numel(opts.Sequence)
+                axis_char = sequence(i);
+                angle_val = angles_rad(i);
+                
+                c = local_fixup(cos(angle_val));
+                s = local_fixup(sin(angle_val));
+
+                T_axis = eye(4);
+                switch axis_char
+                    case 'x', T_axis(2:3, 2:3) = [c, -s; s, c];
+                    case 'y', T_axis([1,3], [1,3]) = [c, s; -s, c];
+                    case 'z', T_axis(1:2, 1:2) = [c, -s; s, c];
+                end
+                
+                T_sequence = T_sequence * T_axis;
+            end
+
+            function x_fixed = local_fixup(x)
+                % snap to 0, 1, -1 (if very close) to improve numerical stability
+                x_fixed = x;
+                snap_threshold = 2*eps;
+                if abs(x) < snap_threshold, x_fixed = 0.0;
+                elseif abs(x - 1.0) < snap_threshold, x_fixed = 1.0;
+                elseif abs(x + 1.0) < snap_threshold, x_fixed = -1.0;
+                end
             end
         end
     end
