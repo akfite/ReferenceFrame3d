@@ -23,7 +23,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Construct/Update
     methods
-        function this = ReferenceFrame3d(rotation, origin, opts)
+        function obj =  ReferenceFrame3d(rotation, origin, opts)
             %REFERENCEFRAME3D Constructor.
             arguments
                 rotation = eye(3) % supports various types
@@ -37,7 +37,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 switch string(class(rotation))
                     case "ReferenceFrame3d"
                         T = rotation.T;
-                        this.name = rotation.name;
+                        obj.name = rotation.name;
                     case "quaternion"
                         T = rotmat(rotation,"point");
                         T(4,4) = 1; % 3x3 -> 4x4
@@ -60,8 +60,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 error('Expected rotation to be a 3x3 or 4x4 matrix.');
             end
 
-            this.T = T; % triggers set.T()
-            this.name = opts.Name;
+            obj.T = T; % triggers set.T()
+            obj.name = opts.Name;
         end
     end
 
@@ -353,28 +353,28 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function translate(this, dxyz)
+        function translate(obj, dxyz)
             %TRANSLATE Shift the origin by an incremental amount.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
                 dxyz(3,1) double {mustBeReal, mustBeFinite}
             end
-            this.T(1:3,4) = this.T(1:3,4) + dxyz;
+            obj.T(1:3,4) = obj.T(1:3,4) + dxyz;
         end
 
-        function reposition(this, new_pos)
+        function reposition(obj, new_pos)
             %REPOSITION Set a new origin.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
                 new_pos(3,1) double {mustBeReal, mustBeFinite}
             end
-            this.T(1:3,4) = new_pos;
+            obj.T(1:3,4) = new_pos;
         end
 
-        function rotate_euler(this, angles, opts)
+        function rotate_euler(obj, angles, opts)
             %ROTATE_EULER Rotate by an euler sequence.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
                 angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
                 opts.Sequence(1,:) char = 'zyx' % yaw-pitch-roll
                 opts.Units(1,1) string = "deg"
@@ -415,7 +415,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 T_sequence = T_sequence * T_axis;
             end
 
-            this.T = this.T * T_sequence;
+            obj.T = obj.T * T_sequence;
 
             function x_fixed = local_fixup(x)
                 % snap to 0, 1, -1 (if very close) to improve numerical stability
@@ -428,46 +428,61 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
         end
 
-        function rotate_dcm(this, dcm)
+        function assign_euler(obj, angles, opts)
+            %ASSIGN_EULER Explicitly assign rotation via a new euler sequence.
+            arguments
+                obj(1,1) ReferenceFrame3d
+                angles(1,:) double {mustBeNumeric, mustBeReal, mustBeFinite}
+                opts.Sequence(1,:) char = 'zyx' % yaw-pitch-roll
+                opts.Units(1,1) string = "deg"
+            end
+
+            obj.T(1:3,1:3) = eye(3);
+            obj.rotate_euler(angles, ...
+                "Sequence", opts.Sequence, ...
+                "Units", opts.Units);
+        end
+
+        function rotate_dcm(obj, dcm)
             %ROTATE_DCM Rotate with a 3x3 Direction Cosine Matrix (DCM).
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
                 dcm(3,3) double
             end
             T = dcm; %#ok<*PROPLC>
             T(4,4) = 1; % 3x3 -> 4x4 with no translation
-            this.T = this.T * T;
+            obj.T = obj.T * T;
         end
 
-        function new = compose(this)
+        function new = compose(obj)
             %COMPOSE Multiply through a sequence of transforms T = T1*T2*T3...
             arguments (Repeating)
-                this(:,1) ReferenceFrame3d
+                obj(:,1) ReferenceFrame3d
             end
-            this = vertcat(this{:});
-            T_new = this(end).T;
-            for i = numel(this)-1:-1:1
-                T_new = this(i).T * T_new;
+            obj =  vertcat(obj{:});
+            T_new = obj(end).T;
+            for i = numel(obj)-1:-1:1
+                T_new = obj(i).T * T_new;
             end
             new = ReferenceFrame3d(T_new);
         end
 
-        function new = inv(this)
+        function new = inv(obj)
             %INV Inverse of the transform.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
             end
-            R_inv = this.R'; % transpose = inverse for a DCM by definition
-            t_inv = -R_inv * this.origin;
+            R_inv = obj.R'; % transpose = inverse for a DCM by definition
+            t_inv = -R_inv * obj.origin;
             new = ReferenceFrame3d([R_inv, t_inv; 0 0 0 1]);
         end
     end
 
     methods
-        function [p, dist] = intersect_plane(this, observer, ray, opts)
+        function [p, dist] = intersect_plane(obj, observer, ray, opts)
             %INTERSECT_PLANE Fire a ray at a 2D slice of the reference frame.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
                 observer(1,3) double
                 ray(1,3) double
                 opts.Slice(1,2) char = 'xy'
@@ -479,24 +494,24 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             % select the 2 basis vectors that define the plane
             switch opts.Slice
                 case 'xy'
-                    a = this.x; b = this.y;
+                    a = obj.x; b = obj.y;
                 case 'xz'
-                    a = this.x; b = this.z;
+                    a = obj.x; b = obj.z;
                 case 'yz'
-                    a = this.y; b = this.z;
+                    a = obj.y; b = obj.z;
                 case 'yx'
-                    a = this.y; b = this.x;
+                    a = obj.y; b = obj.x;
                 case 'zx'
-                    a = this.z; b = this.x;
+                    a = obj.z; b = obj.x;
                 case 'zy'
-                    a = this.z; b = this.y;
+                    a = obj.z; b = obj.y;
                 otherwise
                     validatestring(opts.Slice,{'xy','xz','yz','yx','zx','zy'});
             end
 
             normal = cross(a, b);
             normal = normal ./ norm(normal);
-            point = this.origin + (opts.Offset * normal);
+            point = obj.origin + (opts.Offset * normal);
 
             denominator = dot(normal, ray);
 
@@ -512,7 +527,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             if opts.Debug
                 % create the figure & basis vectors
-                ax = this.show();
+                ax = obj.show();
 
                 % try to size the plane in a way that makes sense for the problem
                 sz = unique(abs(p(p ~= 0))*4);
@@ -520,7 +535,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 if numel(sz) > 2, sz = maxk(sz, 2)*4; end
 
                 % draw the plane & intersecting line
-                this.draw_plane('Slice', opts.Slice, ...
+                obj.draw_plane('Slice', opts.Slice, ...
                     'Offset', opts.Offset, ...
                     'Size', sz);
                 plot3([p(1) observer(1)], [p(2) observer(2)], [p(3) observer(3)], ...
@@ -534,26 +549,26 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Numeric Representations
     methods
-        function T = as_transform(this)
+        function T = as_transform(obj)
             %AS_TRANSFORM Express as a 4x4 homogeneous transform.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
             end
-            T = this.T;
+            T = obj.T;
         end
 
-        function R = as_dcm(this)
+        function R = as_dcm(obj)
             %AS_DCM Express as a 3x3 pure rotation matrix.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
             end
-            R = this.R;
+            R = obj.R;
         end
 
-        function [yaw, pitch, roll] = as_euler(this, angle_unit)
+        function [yaw, pitch, roll] = as_euler(obj, angle_unit)
             %AS_EULER Express as euler angles (zyx sequence).
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
                 angle_unit(1,1) string = "deg"
             end
 
@@ -563,7 +578,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
             % use R_base_to_local (transpose of the frame's R) for calculations
             % consistent with many standard derivations.
-            R = this.R';
+            R = obj.R';
             
             % define a tolerance slightly less than 1 for gimbal lock check
             gimbal_tol = 1 - 1e-9;
@@ -602,49 +617,49 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     %   These methods are subject to the availability of toolboxes on your system.
 
     methods
-        function tform = se3(this)
+        function tform = se3(obj)
             %SE3 Convert to an SE3 object.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
             end
-            tform = se3(this.T);
+            tform = se3(obj.T);
         end
 
-        function rot = so3(this)
+        function rot = so3(obj)
             %SO3 Convert to an SO3 object.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
             end
-            rot = so3(this.R);
+            rot = so3(obj.R);
         end
 
-        function q = quaternion(this)
+        function q = quaternion(obj)
             %QUATERNION Convert to a quaternion object.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
             end
-            q = quaternion(this.R,"rotmat","point");
+            q = quaternion(obj.R,"rotmat","point");
         end
     end
 
     %% Overloads
     methods
-        function new = mtimes(this, other)
+        function new = mtimes(obj, other)
             %MTIMES Matrix multiplication.
             arguments
-                this(1,1) ReferenceFrame3d
+                obj(1,1) ReferenceFrame3d
                 other(1,1) ReferenceFrame3d
             end
-            new = ReferenceFrame3d(this.T * other.T);
+            new = ReferenceFrame3d(obj.T * other.T);
         end
     end
 
     %% Graphics
     methods (Sealed)
-        function ax = show(this)
+        function ax = show(obj)
             %SHOW Plot everything in a new, dedicated figure.
             arguments
-                this(:,1) ReferenceFrame3d
+                obj(:,1) ReferenceFrame3d
             end
 
             hfig = figure;
@@ -653,10 +668,10 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             box(ax, 'on');
 
             % configure line lengths
-            this.plot(...
+            obj.plot(...
                 'Parent',ax, ...
                 'TextLabels', true, ...
-                'LineLength', max(1,local_find_max_origin_dist(this)/4));
+                'LineLength', max(1,local_find_max_origin_dist(obj)/4));
 
             hold(ax,'on');
             axis(ax, 'equal');
@@ -1033,69 +1048,69 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     % set
     methods
-        function set.T(this, T_new)
+        function set.T(obj, T_new)
             ReferenceFrame3d.validate_transform(T_new);
-            this.T = T_new;
-            this.update_hgtransform();
+            obj.T = T_new;
+            obj.update_hgtransform();
         end
     end
 
     % get
     methods
-        function v = get.R(this)
-            v = this.T(1:3,1:3);
+        function v = get.R(obj)
+            v = obj.T(1:3,1:3);
         end
 
-        function v = get.x(this)
-            v = this.T(1:3,1);
+        function v = get.x(obj)
+            v = obj.T(1:3,1);
         end
 
-        function v = get.y(this)
-            v = this.T(1:3,2);
+        function v = get.y(obj)
+            v = obj.T(1:3,2);
         end
 
-        function v = get.z(this)
-            v = this.T(1:3,3);
+        function v = get.z(obj)
+            v = obj.T(1:3,3);
         end
 
-        function v = get.origin(this)
-            v = this.T(1:3,4);
+        function v = get.origin(obj)
+            v = obj.T(1:3,4);
         end
     end
 
     %% matlab.mixin.Copyable
     methods (Access = protected)
-        function copied = copyElement(this)
-            copied = copyElement@matlab.mixin.Copyable(this);
+        function copied = copyElement(obj)
+            copied = copyElement@matlab.mixin.Copyable(obj);
 
             % only copy graphics objects if something has been plotted
-            if isempty(this.h_transform) || ~isvalid(this.h_transform)
+            if isempty(obj.h_transform) || ~isvalid(obj.h_transform)
                 return
             end
-            parent = this.h_transform.Parent;
-            copied.h_transform = copyobj(this.h_transform, parent);
-            copied.h_plot_group = copyobj(this.h_plot_group, parent);
+            parent = obj.h_transform.Parent;
+            copied.h_transform = copyobj(obj.h_transform, parent);
+            copied.h_plot_group = copyobj(obj.h_plot_group, parent);
         end
     end
 
     %% matlab.mixin.CustomDisplay
     methods (Sealed, Access = protected)
-        function footer = getFooter(this)
+        function footer = getFooter(obj)
             deg = char(176);
 
-            if isscalar(this)
+            if isscalar(obj)
                 footer = '';
-                frame = this;
+                frame = obj;
             else
                 % don't display a custom footer for massive or multi-dim arrays
-                if numel(this) > 100 || nnz(size(this) ~= 1) > 1
+                if numel(obj) > 100 || nnz(size(obj) ~= 1) > 1
                     footer = ''; return
                 end
 
                 footer = '   This array represents a transformation sequence.';
                 footer = sprintf('%s  When composed:\n\n', footer);
 
-                frame = compose(this);
+                frame = compose(obj);
             end
 
             [y,p,r] = frame.as_euler("deg");
