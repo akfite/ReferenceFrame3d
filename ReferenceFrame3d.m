@@ -1003,7 +1003,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
     end
 
     %% Static helpers
-    methods
+    methods (Static)
         function T_sequence = euler_transform(angles, opts)
             %EULER_TRANSFORM Get the transformation for an euler sequence.
             arguments
