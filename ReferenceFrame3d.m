@@ -23,7 +23,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
 
     %% Construct/Update
     methods
-        function obj =  ReferenceFrame3d(rotation, origin, opts)
+        function obj = ReferenceFrame3d(rotation, origin, opts)
             %REFERENCEFRAME3D Constructor.
             arguments
                 rotation = eye(3) % supports various types
@@ -198,7 +198,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             C_E2L(2,2) = clon;
             C_E2L(2,3) = -clat * slon;
             C_E2L(3,1) = clat;
-            
+
             % convert geodetic position to ECEF to set the origin
             pos_ecef = local_lla2ecef();
             obj = ReferenceFrame3d(C_E2L, pos_ecef, "Name", opts.Name);
@@ -413,7 +413,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             arguments (Repeating)
                 obj(:,1) ReferenceFrame3d
             end
-            obj =  vertcat(obj{:});
+            obj = vertcat(obj{:});
             T_new = obj(end).T;
             for i = numel(obj)-1:-1:1
                 T_new = obj(i).T * T_new;
