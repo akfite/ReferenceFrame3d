@@ -191,18 +191,14 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             clon = cos(lon);
             
             C_E2L(3,3) = -slat; % pre-allocates matrix
-            C_E2L(3,1) = -clat * clon;
-            C_E2L(3,2) = -clat * slon;
-
             C_E2L(1,1) = -slat * clon;
-            C_E2L(1,2) = -slat * slon;
-            C_E2L(1,3) = clat;
-            
-            C_E2L(2,1) = -slon;
+            C_E2L(1,2) = -slon;
+            C_E2L(1,3) = -clat * clon;
+            C_E2L(2,1) = -slat * slon;
             C_E2L(2,2) = clon;
-
-            C_E2L = C_E2L';
-
+            C_E2L(2,3) = -clat * slon;
+            C_E2L(3,1) = clat;
+            
             % convert geodetic position to ECEF to set the origin
             pos_ecef = local_lla2ecef();
             obj = ReferenceFrame3d(C_E2L, pos_ecef, "Name", opts.Name);
