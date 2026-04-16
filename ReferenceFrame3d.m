@@ -368,9 +368,31 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
 
             obj.T(1:3,1:3) = eye(3);
-            obj.rotate_euler(angles, ...
-                "Sequence", opts.Sequence, ...
-                "Units", opts.Units);
+            obj.rotate_euler(angles,"Sequence",opts.Sequence,"Units",opts.Units);
+        end
+
+        function repose(obj, angles, position, opts)
+            %REPOSE Explicitly assign a new orientation and position.
+            arguments
+                obj(1,1) ReferenceFrame3d
+                angles(1,:) double
+                position(1,3) double
+                opts.Sequence(1,:) char = 'zyx'
+                opts.Units(1,1) string = "deg"
+            end
+
+            obj.reorient(angles,"Sequence",opts.Sequence,"Units",opts.Units);
+            obj.reposition(position);
+        end
+
+        function assign(obj, other)
+            %ASSIGN Update the transform to match another ReferenceFrame3d object.
+            arguments
+                obj(1,1) ReferenceFrame3d
+                other(1,1) ReferenceFrame3d
+            end
+
+            obj.T = other.as_transform();
         end
 
         function translate(obj, dxyz)
@@ -379,6 +401,7 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
                 obj(1,1) ReferenceFrame3d
                 dxyz(3,1) double {mustBeReal, mustBeFinite}
             end
+
             obj.T(1:3,4) = obj.T(1:3,4) + dxyz;
         end
 

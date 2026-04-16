@@ -38,8 +38,11 @@ world = ReferenceFrame3d(eye(3), [0 0 0]);
 
 robot = ReferenceFrame3d(); % equivalent to above
 robot.reposition([0.5 1 0.5]); % offset w.r.t parent frame's origin
-robot.reorient([-45, 0, 0]); % yaw
-% robot = ReferenceFrame3d.from_euler([-45, 0, 0], [0.5 1 0.5]); % one-line version
+robot.reorient([-45 0 0]); % yaw
+
+% equivalent forms
+% robot.repose([-45 0 0], [0.5 1 0.5]);
+% robot = ReferenceFrame3d.from_euler([-45 0 0], [0.5 1 0.5]);
 ```
 
 Transform a vector (`[1 1 0]`--a point in space) from the local frame of the robot to the world frame.
@@ -200,6 +203,8 @@ Using these frames, we can import data from a variety of sources and just plot t
 *   `translate(dxyz)`: Apply incremental translation.
 *   `reposition(new_pos)`: Set absolute origin.
 *   `reorient(angles, ...)`: Set absolute orientation with an Euler sequence.
+*   `repose(angles, pos, ...)`: Set absolute orientation and position.
+*   `assign(frame)`: Assign the transform of one object to another.
 *   `rotate_dcm(dcm)`: Apply incremental rotation (3x3 DCM).
 *   `rotate_euler(angles, ...)`: Apply Euler rotation relative to current state.
 *   `compose(frame1, frame2, ...)`: Compose a sequence of frames.
