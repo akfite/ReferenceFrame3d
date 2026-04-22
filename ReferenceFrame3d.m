@@ -451,7 +451,8 @@ classdef ReferenceFrame3d < matlab.mixin.Copyable ...
             end
             R_inv = obj.R'; % transpose = inverse for a DCM by definition
             t_inv = -R_inv * obj.origin;
-            new = ReferenceFrame3d([R_inv, t_inv; 0 0 0 1]);
+            new = copy(obj);
+            new.T = [R_inv, t_inv; 0 0 0 1];
         end
     end
 
